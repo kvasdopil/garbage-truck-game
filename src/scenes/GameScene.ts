@@ -33,6 +33,8 @@ export class GameScene extends Phaser.Scene {
   private animContainer: Phaser.GameObjects.Container | null = null; // Container for animation
   private currentAnimatingBin: Phaser.GameObjects.Sprite | null = null; // Track which bin is animating
   private isDragging: boolean = false; // Track if any object is being dragged
+  private binTypes: Map<Phaser.GameObjects.Sprite, string> = new Map(); // Track bin types
+  private binAcceptedGarbage: Map<string, string[]> = new Map(); // Track which garbage types each bin type accepts
 
   // Garbage system
   private garbageTypes: string[] = [
@@ -66,6 +68,9 @@ export class GameScene extends Phaser.Scene {
     yPosition: 60, // Y-position for garbage pieces
   };
 
+  private garbageStartPositions: Map<Phaser.GameObjects.Sprite, { x: number; y: number }> =
+    new Map(); // Track original positions of garbage
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -75,10 +80,12 @@ export class GameScene extends Phaser.Scene {
     this.load.image('truck', 'truck.png');
     this.load.image('bin-green', 'bin-green.png'); // Empty bin
     this.load.image('bin-blue', 'bin-green.png'); // Using same image for now, can be replaced with different colored bins
-    this.load.image('bin-yellow', 'bin-green.png'); // Using same image for now, can be replaced with different colored bins
+    this.load.image('bin-yellow', 'bin-green.png'); // Using same image for now
     this.load.image('bin-green-full', 'bin-green-full.png'); // Full bin with garbage
     this.load.image('bin-blue-full', 'bin-green-full.png'); // Using same image for now
     this.load.image('bin-yellow-full', 'bin-green-full.png'); // Using same image for now
+    this.load.image('bin-plastic-empty', 'bin-plastic-empty.png'); // Empty plastic bin
+    this.load.image('bin-plastic-full', 'bin-plastic-full.png'); // Full plastic bin
     this.load.image('garbage-can', 'garbage-can.png'); // Garbage can image
     this.load.image('garbage-apple', 'garbage-apple.png'); // Apple garbage image
     this.load.image('garbage-bottle', 'garbage-bottle.png'); // Bottle garbage image
@@ -86,6 +93,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    // Initialize bin type accepted garbage
+    this.binAcceptedGarbage.set('generic', ['garbage-can', 'garbage-apple']); // Generic accepts only non-plastic garbage
+    this.binAcceptedGarbage.set('plastic', ['garbage-bottle', 'garbage-bag']); // Plastic only accepts bottles and bags
+
     // Create the truck sprite
     this.truck = this.add.sprite(
       this.cameras.main.width * 0.25, // Left third of screen
@@ -113,9 +124,9 @@ export class GameScene extends Phaser.Scene {
 
     // Create three home drop zones (top, middle, bottom)
     const homePositionsY = [
-      this.cameras.main.height * 0.25, // Top
-      this.cameras.main.height * 0.5, // Middle
-      this.cameras.main.height * 0.75, // Bottom
+      this.cameras.main.height * 0.2, // Top (moved up)
+      this.cameras.main.height * 0.5, // Middle (unchanged)
+      this.cameras.main.height * 0.8, // Bottom (moved down)
     ];
 
     for (const posY of homePositionsY) {
@@ -131,16 +142,20 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Create the 3 bin sprites at each home position
-    const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
-    const binColorsFull = ['bin-green-full', 'bin-blue-full', 'bin-yellow-full'];
+    const binTypes = ['plastic', 'generic', 'generic']; // First bin is plastic, others are generic
+    const binEmptyTextures = ['bin-plastic-empty', 'bin-green', 'bin-green']; // First bin uses plastic texture
+    const binFullTextures = ['bin-plastic-full', 'bin-green-full', 'bin-green-full']; // First bin uses plastic full texture
 
     for (let i = 0; i < 3; i++) {
       const bin = this.add.sprite(
         this.cameras.main.width * 0.75, // Right side of screen
         homePositionsY[i],
-        binColors[i] // Start with empty bins
+        binEmptyTextures[i] // Start with empty bins
       );
       bin.setScale(this.binScale);
+
+      // Set bin type
+      this.binTypes.set(bin, binTypes[i]);
 
       // Set initial valid position
       this.lastValidPositions[i] = {
@@ -217,6 +232,9 @@ export class GameScene extends Phaser.Scene {
         }
         // If it's a garbage piece
         else if (this.garbagePieces.includes(gameObject)) {
+          // Store the original position
+          this.garbageStartPositions.set(gameObject, { x: gameObject.x, y: gameObject.y });
+
           // Increase size slightly when dragging garbage
           this.tweens.add({
             targets: gameObject,
@@ -563,12 +581,18 @@ export class GameScene extends Phaser.Scene {
         this.emptyBins.add(bin);
 
         // Update the sprite (will be applied when bin becomes visible again)
-        const binIndex = this.bins.indexOf(bin);
-        const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
-        bin.setTexture(binColors[binIndex]);
-
-        // Also update the animation sprite to show empty bin
-        animBin.setTexture(binColors[binIndex]);
+        const binType = this.binTypes.get(bin) || 'generic';
+        if (binType === 'plastic') {
+          bin.setTexture('bin-plastic-empty');
+          // Also update the animation sprite to show empty bin
+          animBin.setTexture('bin-plastic-empty');
+        } else {
+          const binIndex = this.bins.indexOf(bin);
+          const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
+          bin.setTexture(binColors[binIndex]);
+          // Also update the animation sprite to show empty bin
+          animBin.setTexture(binColors[binIndex]);
+        }
 
         // Hold for specified duration
         this.time.delayedCall(this.tippingAnimParams.holdDuration, () => {
@@ -604,16 +628,26 @@ export class GameScene extends Phaser.Scene {
    * Updates the bin texture based on whether it's empty or full
    */
   private updateBinTexture(bin: Phaser.GameObjects.Sprite) {
-    const binIndex = this.bins.indexOf(bin);
-    const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
-    const binColorsFull = ['bin-green-full', 'bin-blue-full', 'bin-yellow-full'];
+    const binType = this.binTypes.get(bin) || 'generic';
 
     if (this.emptyBins.has(bin)) {
-      // Use empty bin texture
-      bin.setTexture(binColors[binIndex]);
+      // Use empty bin texture based on type
+      if (binType === 'plastic') {
+        bin.setTexture('bin-plastic-empty');
+      } else {
+        const binIndex = this.bins.indexOf(bin);
+        const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
+        bin.setTexture(binColors[binIndex]);
+      }
     } else {
-      // Use full bin texture
-      bin.setTexture(binColorsFull[binIndex]);
+      // Use full bin texture based on type
+      if (binType === 'plastic') {
+        bin.setTexture('bin-plastic-full');
+      } else {
+        const binIndex = this.bins.indexOf(bin);
+        const binColorsFull = ['bin-green-full', 'bin-blue-full', 'bin-yellow-full'];
+        bin.setTexture(binColorsFull[binIndex]);
+      }
     }
   }
 
@@ -697,6 +731,7 @@ export class GameScene extends Phaser.Scene {
     pointerY: number
   ) {
     let collidedWithValidBin = false;
+    const startPosition = this.garbageStartPositions.get(garbage);
 
     // Check each bin
     for (const bin of this.bins) {
@@ -715,52 +750,63 @@ export class GameScene extends Phaser.Scene {
 
         // Only allow garbage to be placed in bins that are in home zones (not truck zone)
         if (binZone && this.homeDropZones.includes(binZone)) {
-          collidedWithValidBin = true;
+          // Check if this bin type accepts this garbage type
+          const binType = this.binTypes.get(bin) || 'generic';
+          const garbageType = garbage.texture.key;
+          const acceptedGarbageTypes = this.binAcceptedGarbage.get(binType) || [];
 
-          // Make the bin full if it was empty
-          if (this.emptyBins.has(bin)) {
-            this.emptyBins.delete(bin);
-            this.updateBinTexture(bin);
+          if (acceptedGarbageTypes.includes(garbageType)) {
+            collidedWithValidBin = true;
+
+            // Make the bin full if it was empty
+            if (this.emptyBins.has(bin)) {
+              this.emptyBins.delete(bin);
+              this.updateBinTexture(bin);
+            }
+
+            // Play a quick scale animation as visual feedback
+            this.tweens.add({
+              targets: bin,
+              scale: this.binScale * 1.1,
+              duration: 100,
+              yoyo: true,
+              ease: 'Power1',
+            });
+
+            // Remove garbage from display and array
+            const garbageIndex = this.garbagePieces.indexOf(garbage);
+            if (garbageIndex !== -1) {
+              this.garbagePieces.splice(garbageIndex, 1);
+            }
+
+            // Clean up the stored position
+            this.garbageStartPositions.delete(garbage);
+
+            // Fade out and destroy the garbage
+            this.tweens.add({
+              targets: garbage,
+              alpha: 0,
+              scale: 0,
+              duration: 300,
+              ease: 'Power2',
+              onComplete: () => {
+                garbage.destroy();
+              },
+            });
+
+            break;
           }
-
-          // Play a quick scale animation as visual feedback
-          this.tweens.add({
-            targets: bin,
-            scale: this.binScale * 1.1,
-            duration: 100,
-            yoyo: true,
-            ease: 'Power1',
-          });
-
-          // Remove garbage from display and array
-          const garbageIndex = this.garbagePieces.indexOf(garbage);
-          if (garbageIndex !== -1) {
-            this.garbagePieces.splice(garbageIndex, 1);
-          }
-
-          // Fade out and destroy the garbage
-          this.tweens.add({
-            targets: garbage,
-            alpha: 0,
-            scale: 0,
-            duration: 300,
-            ease: 'Power2',
-            onComplete: () => {
-              garbage.destroy();
-            },
-          });
-
-          break;
         }
       }
     }
 
     // If not collided with any valid bin, return to original position
-    if (!collidedWithValidBin) {
+    if (!collidedWithValidBin && startPosition) {
       this.tweens.add({
         targets: garbage,
-        x: garbage.x, // Keep the same X position
-        y: this.garbageAnimParams.yPosition,
+        x: startPosition.x,
+        y: startPosition.y,
+        scale: this.garbageAnimParams.scale,
         duration: 400,
         ease: 'Back.out',
       });
@@ -782,6 +828,9 @@ export class GameScene extends Phaser.Scene {
       bin.setScale(this.binScale);
     });
 
+    // Get the garbage type
+    const garbageType = garbage.texture.key;
+
     // Check each bin
     for (const bin of this.bins) {
       // Skip the bin if it's currently being animated
@@ -802,8 +851,15 @@ export class GameScene extends Phaser.Scene {
 
         // Only highlight bins that are in home zones (not truck zone)
         if (binZone && this.homeDropZones.includes(binZone)) {
-          // Highlight bin by increasing its scale
-          bin.setScale(this.binScale * 1.1);
+          // Check if this bin type accepts this garbage type
+          const binType = this.binTypes.get(bin) || 'generic';
+          const acceptedGarbageTypes = this.binAcceptedGarbage.get(binType) || [];
+
+          // Only highlight the bin if it accepts this type of garbage
+          if (acceptedGarbageTypes.includes(garbageType)) {
+            // Highlight bin by increasing its scale
+            bin.setScale(this.binScale * 1.1);
+          }
           break;
         }
       }
