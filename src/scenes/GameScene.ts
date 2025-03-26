@@ -42,6 +42,7 @@ export class GameScene extends Phaser.Scene {
     'garbage-apple',
     'garbage-bottle',
     'garbage-bag',
+    'garbage-banana',
   ]; // Types of garbage
   private garbagePieces: Phaser.GameObjects.Sprite[] = []; // Active garbage pieces
   private garbageTimer!: Phaser.Time.TimerEvent; // Timer for spawning garbage
@@ -86,16 +87,20 @@ export class GameScene extends Phaser.Scene {
     this.load.image('bin-yellow-full', 'bin-green-full.png'); // Using same image for now
     this.load.image('bin-plastic-empty', 'bin-plastic-empty.png'); // Empty plastic bin
     this.load.image('bin-plastic-full', 'bin-plastic-full.png'); // Full plastic bin
+    this.load.image('bin-food-empty', 'bin-food-empty.png'); // Empty food bin
+    this.load.image('bin-food-full', 'bin-food-full.png'); // Full food bin
     this.load.image('garbage-can', 'garbage-can.png'); // Garbage can image
     this.load.image('garbage-apple', 'garbage-apple.png'); // Apple garbage image
     this.load.image('garbage-bottle', 'garbage-bottle.png'); // Bottle garbage image
     this.load.image('garbage-bag', 'garbage-bag.png'); // Bag garbage image
+    this.load.image('garbage-banana', 'garbage-banana.png'); // Banana garbage image
   }
 
   create() {
     // Initialize bin type accepted garbage
-    this.binAcceptedGarbage.set('generic', ['garbage-can', 'garbage-apple']); // Generic accepts only non-plastic garbage
+    this.binAcceptedGarbage.set('generic', ['garbage-can']); // Generic accepts only cans
     this.binAcceptedGarbage.set('plastic', ['garbage-bottle', 'garbage-bag']); // Plastic only accepts bottles and bags
+    this.binAcceptedGarbage.set('food', ['garbage-apple', 'garbage-banana']); // Food only accepts apples and bananas
 
     // Create the truck sprite
     this.truck = this.add.sprite(
@@ -142,9 +147,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Create the 3 bin sprites at each home position
-    const binTypes = ['plastic', 'generic', 'generic']; // First bin is plastic, others are generic
-    const binEmptyTextures = ['bin-plastic-empty', 'bin-green', 'bin-green']; // First bin uses plastic texture
-    const binFullTextures = ['bin-plastic-full', 'bin-green-full', 'bin-green-full']; // First bin uses plastic full texture
+    const binTypes = ['plastic', 'food', 'generic']; // First is plastic, second is food, third is generic
+    const binEmptyTextures = ['bin-plastic-empty', 'bin-food-empty', 'bin-green']; // Updated textures
+    const binFullTextures = ['bin-plastic-full', 'bin-food-full', 'bin-green-full']; // Updated textures
 
     for (let i = 0; i < 3; i++) {
       const bin = this.add.sprite(
@@ -586,6 +591,10 @@ export class GameScene extends Phaser.Scene {
           bin.setTexture('bin-plastic-empty');
           // Also update the animation sprite to show empty bin
           animBin.setTexture('bin-plastic-empty');
+        } else if (binType === 'food') {
+          bin.setTexture('bin-food-empty');
+          // Also update the animation sprite to show empty bin
+          animBin.setTexture('bin-food-empty');
         } else {
           const binIndex = this.bins.indexOf(bin);
           const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
@@ -634,6 +643,8 @@ export class GameScene extends Phaser.Scene {
       // Use empty bin texture based on type
       if (binType === 'plastic') {
         bin.setTexture('bin-plastic-empty');
+      } else if (binType === 'food') {
+        bin.setTexture('bin-food-empty');
       } else {
         const binIndex = this.bins.indexOf(bin);
         const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
@@ -643,6 +654,8 @@ export class GameScene extends Phaser.Scene {
       // Use full bin texture based on type
       if (binType === 'plastic') {
         bin.setTexture('bin-plastic-full');
+      } else if (binType === 'food') {
+        bin.setTexture('bin-food-full');
       } else {
         const binIndex = this.bins.indexOf(bin);
         const binColorsFull = ['bin-green-full', 'bin-blue-full', 'bin-yellow-full'];
