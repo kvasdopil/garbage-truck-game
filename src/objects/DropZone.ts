@@ -9,7 +9,7 @@ export enum ZoneType {
 export class DropZone extends Phaser.GameObjects.Zone {
   private zoneType: ZoneType;
   private occupant: GarbageBin | null = null;
-  private graphics: Phaser.GameObjects.Graphics;
+  // private graphics: Phaser.GameObjects.Graphics;
   private icon: Phaser.GameObjects.Sprite | null = null;
 
   constructor(
@@ -18,20 +18,19 @@ export class DropZone extends Phaser.GameObjects.Zone {
     y: number,
     width: number,
     height: number,
-    type: ZoneType,
-    graphics: Phaser.GameObjects.Graphics
+    type: ZoneType
   ) {
     super(scene, x, y, width, height);
 
     this.zoneType = type;
-    this.graphics = graphics;
+    // this.graphics = graphics;
 
     // Create icon for truck zone
     if (type === ZoneType.TRUCK) {
       this.icon = scene.add.sprite(x, y, 'drop-zone-icon');
-      this.icon.setScale(0.5);
       this.icon.setDepth(1); // Make sure it appears above the background
-      this.icon.setAlpha(0.8);
+      this.icon.setAlpha(0.2);
+      this.icon.setFlipX(true);
 
       // Add a subtle floating animation
       this.addIconAnimation();
@@ -67,9 +66,6 @@ export class DropZone extends Phaser.GameObjects.Zone {
 
     // Update icon visibility
     this.updateIconVisibility();
-
-    // Redraw
-    this.draw();
   }
 
   /**
@@ -107,23 +103,6 @@ export class DropZone extends Phaser.GameObjects.Zone {
    */
   isHomeZone(): boolean {
     return this.zoneType === ZoneType.HOME;
-  }
-
-  /**
-   * Draw the zone with optional highlight
-   */
-  draw(highlight: boolean = false): void {
-    // Don't draw if zone is occupied
-    if (this.isOccupied()) {
-      return;
-    }
-
-    // Apply highlight effect to icon if it exists
-    if (this.icon && this.zoneType === ZoneType.TRUCK) {
-      this.icon.setScale(0.1); // Normal size
-      this.icon.setFlipX(true);
-      this.icon.setAlpha(0.5); // Slightly transparent when not highlighted
-    }
   }
 
   /**

@@ -35,7 +35,7 @@ echo "Converting truck.png to 50%..."
 magick "$SCRIPT_DIR/truck.png" -resize 50% "$TGT_DIR/truck.png"
 
 # convert drop-zone-icon.png to 50%
-echo "Converting drop-zone-icon.png to 25%..."
-magick "$SCRIPT_DIR/drop-zone-icon.png" -resize 25% -sharpen 0x1.0 "$TGT_DIR/drop-zone-icon.png"
+echo "Converting drop-zone-icon.png to 20%..."
+magick "$SCRIPT_DIR/drop-zone-icon.png" -resize 20% -sharpen 0x1.0 "$TGT_DIR/drop-zone-icon.png"
 
 echo "Conversion complete!" 

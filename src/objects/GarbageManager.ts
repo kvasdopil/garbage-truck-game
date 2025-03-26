@@ -4,7 +4,7 @@ import { GarbagePiece, GarbageType } from './GarbagePiece';
 export class GarbageManager {
   private scene: Phaser.Scene;
   private garbagePieces: GarbagePiece[] = [];
-  private garbageTimer!: Phaser.Time.TimerEvent;
+  //private garbageTimer!: Phaser.Time.TimerEvent;
   private maxGarbagePieces: number = 3;
   private isDragging: boolean = false;
   private spawnInterval: number = 3000; // 3 seconds
@@ -24,7 +24,7 @@ export class GarbageManager {
    */
   startSpawning(): void {
     // Start the timer
-    this.garbageTimer = this.scene.time.addEvent({
+    this.scene.time.addEvent({
       delay: this.spawnInterval,
       callback: this.spawnRandomGarbage,
       callbackScope: this,

@@ -27,9 +27,7 @@ export class GameScene extends Phaser.Scene {
   private bins: GarbageBin[] = [];
   private truckDropZone!: DropZone;
   private homeDropZones: DropZone[] = [];
-  private dropZoneGraphics!: Phaser.GameObjects.Graphics;
   private isAnimating: boolean = false;
-  private isDragging: boolean = false;
   private currentAnimatingBin: GarbageBin | null = null;
   private garbageManager!: GarbageManager;
 
@@ -78,25 +76,14 @@ export class GameScene extends Phaser.Scene {
   create() {
     // Create a light grey background for the home drop zone area
     const homeDockBg = this.add.rectangle(
-      this.cameras.main.width * 0.75, // Same x position as home zones
+      this.cameras.main.width, // Same x position as home zones
       this.cameras.main.height / 2, // Center of the screen
-      this.cameras.main.width * 0.2, // Width of background
+      this.cameras.main.width * 0.7, // Width of background
       this.cameras.main.height, // Full height of screen
       0xcccccc, // Light grey color
       0.5 // Alpha (transparency)
     );
     homeDockBg.setDepth(-1); // Place behind other elements
-
-    // // Create a light grey background for the truck drop zone area
-    // const truckDockBg = this.add.rectangle(
-    //   this.cameras.main.width * 0.25 + this.cameras.main.width * 0.05, // Aligned with where the truck zone will be
-    //   this.cameras.main.height / 2, // Center of the screen
-    //   this.cameras.main.width * 0.15, // Width of background
-    //   this.cameras.main.height, // Full height of screen
-    //   0xdddddd, // Slightly darker grey color
-    //   0.5 // Alpha (transparency)
-    // );
-    // truckDockBg.setDepth(-1); // Place behind other elements
 
     // Create the truck sprite
     this.truck = this.add.sprite(
@@ -104,9 +91,6 @@ export class GameScene extends Phaser.Scene {
       this.cameras.main.height / 2,
       'truck'
     );
-
-    // Create drop zone graphics
-    this.dropZoneGraphics = this.add.graphics();
 
     // Create drop zones
     this.createDropZones();
@@ -130,12 +114,11 @@ export class GameScene extends Phaser.Scene {
     // Create truck drop zone
     this.truckDropZone = new DropZone(
       this,
-      this.cameras.main.width * 0.25 + this.truck.width * 0.25 + zoneWidth * 0.5, // Right side of truck
+      this.cameras.main.width * 0.25 + this.truck.width * 0.5 + zoneWidth * 0.5, // Right side of truck
       this.cameras.main.height / 2, // Same y as truck
       zoneWidth,
       zoneHeight,
-      ZoneType.TRUCK,
-      this.dropZoneGraphics
+      ZoneType.TRUCK
     );
 
     // Create three home drop zones (top, middle, bottom)
@@ -152,8 +135,7 @@ export class GameScene extends Phaser.Scene {
         posY,
         zoneWidth,
         zoneHeight,
-        ZoneType.HOME,
-        this.dropZoneGraphics
+        ZoneType.HOME
       );
       this.homeDropZones.push(homeZone);
     }
@@ -181,9 +163,6 @@ export class GameScene extends Phaser.Scene {
       // Set initial zone
       this.homeDropZones[i].setOccupant(bin);
     }
-
-    // Make sure all zones are properly drawn based on occupancy
-    this.redrawAllZones();
   }
 
   private setupInputHandlers(): void {
@@ -195,7 +174,7 @@ export class GameScene extends Phaser.Scene {
         if (this.isAnimating) return;
 
         // Set dragging state
-        this.isDragging = true;
+        // this.isDragging = true;
         this.garbageManager.setDragging(true);
 
         // Bring the object to the top
@@ -225,9 +204,7 @@ export class GameScene extends Phaser.Scene {
         gameObj.y = dragY;
 
         // Handle different draggable object types
-        if (gameObject instanceof GarbageBin) {
-          this.handleBinDrag(gameObject, pointer);
-        } else if (gameObject instanceof GarbagePiece) {
+        if (gameObject instanceof GarbagePiece) {
           this.handleGarbageDrag(gameObject, pointer);
         }
       }
@@ -238,7 +215,7 @@ export class GameScene extends Phaser.Scene {
       'dragend',
       (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
         // Reset dragging state
-        this.isDragging = false;
+        // this.isDragging = false;
         this.garbageManager.setDragging(false);
 
         // Handle different draggable object types
@@ -257,11 +234,6 @@ export class GameScene extends Phaser.Scene {
 
   private handleGarbageDragStart(garbage: GarbagePiece): void {
     garbage.handleDragStart();
-  }
-
-  private handleBinDrag(bin: GarbageBin, pointer: Phaser.Input.Pointer): void {
-    // Check if hovering over any drop zone
-    this.checkDropZoneHover(pointer.x, pointer.y);
   }
 
   private handleGarbageDrag(garbage: GarbagePiece, pointer: Phaser.Input.Pointer): void {
@@ -357,14 +329,8 @@ export class GameScene extends Phaser.Scene {
 
         this.isAnimating = false;
         this.currentAnimatingBin = null;
-
-        // Redraw zones
-        this.redrawAllZones();
       });
     }
-
-    // Reset zone highlights
-    this.redrawAllZones();
 
     // Run cleanup to fix any inconsistencies after a 500ms delay
     this.time.delayedCall(500, () => {
@@ -382,23 +348,6 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private checkDropZoneHover(pointerX: number, pointerY: number): void {
-    // Reset all zone highlights
-    this.redrawAllZones();
-
-    // Check truck zone
-    if (this.truckDropZone.containsPoint(pointerX, pointerY) && !this.truckDropZone.isOccupied()) {
-      this.truckDropZone.draw(true); // Highlight
-    }
-
-    // Check home zones
-    for (const homeZone of this.homeDropZones) {
-      if (homeZone.containsPoint(pointerX, pointerY) && !homeZone.isOccupied()) {
-        homeZone.draw(true); // Highlight
-      }
-    }
-  }
-
   private checkGarbageCollisionWithBins(
     garbage: GarbagePiece,
     pointerX: number,
@@ -413,30 +362,6 @@ export class GameScene extends Phaser.Scene {
         this.garbageManager.removeGarbagePiece(garbage);
       }
     );
-  }
-
-  private redrawAllZones(): void {
-    // Clear all drawings first
-    this.dropZoneGraphics.clear();
-
-    // Debug logging
-    console.log('Truck zone occupied:', this.truckDropZone.isOccupied());
-    if (this.truckDropZone.getOccupant()) {
-      console.log('Truck occupant:', this.truckDropZone.getOccupant());
-    }
-
-    this.homeDropZones.forEach((zone, i) => {
-      console.log(`Home zone ${i} occupied:`, zone.isOccupied());
-      if (zone.getOccupant()) {
-        console.log(`Home zone ${i} occupant:`, zone.getOccupant());
-      }
-    });
-
-    // Redraw all zones with their current state
-    this.truckDropZone.draw();
-    for (const homeZone of this.homeDropZones) {
-      homeZone.draw();
-    }
   }
 
   private cleanupZoneOccupancy(): void {
@@ -481,8 +406,5 @@ export class GameScene extends Phaser.Scene {
         bin.setCurrentZone(null);
       }
     }
-
-    // Finally, redraw all zones
-    this.redrawAllZones();
   }
 }
