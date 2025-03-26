@@ -39,3 +39,14 @@ npm run build
 ## License
 
 MIT
+
+## TODO
+
+- deploy
+- add full screen mode
+- add star counter for collected garbage
+- add up to 6 types of garbage: domestic, plastic, food, metal, glass, paper
+- add level system and open new types of garbage for collected stars
+- when a level is done, garbage truck goes away
+- add max capacity to garbage cans
+- make graphics less ugly
