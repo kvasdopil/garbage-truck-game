@@ -12,7 +12,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
   private isEmpty: boolean = true;
   private currentZone: DropZone | null = null;
   private lastValidPosition: { x: number; y: number };
-  private binScale: number = 0.2;
+  private binScale: number = 1;
 
   // Textures for different bin states
   private emptyTexture: string;

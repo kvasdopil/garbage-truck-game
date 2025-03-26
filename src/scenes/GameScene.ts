@@ -52,21 +52,21 @@ export class GameScene extends Phaser.Scene {
     this.load.image('bin-food-full', 'textures/bin-food-full.png'); // Full food bin
 
     // Load food garbage as spritesheet (2x2 grid)
-    this.load.spritesheet('garbage-food', 'textures/garbage-food-small.png', {
+    this.load.spritesheet('garbage-food', 'textures/garbage-food.png', {
       frameWidth: 128, // Assuming each frame is 32x32 pixels
       frameHeight: 128,
       spacing: 0,
     });
 
     // Load plastic garbage as spritesheet (2x2 grid)
-    this.load.spritesheet('garbage-plastic', 'textures/garbage-plastic-small.png', {
+    this.load.spritesheet('garbage-plastic', 'textures/garbage-plastic.png', {
       frameWidth: 128, // Assuming each frame is 128x128 pixels
       frameHeight: 128,
       spacing: 0,
     });
 
     // Load paper garbage as spritesheet (2x2 grid)
-    this.load.spritesheet('garbage-paper', 'textures/garbage-paper-small.png', {
+    this.load.spritesheet('garbage-paper', 'textures/garbage-paper.png', {
       frameWidth: 128, // Assuming each frame is 128x128 pixels
       frameHeight: 128,
       spacing: 0,
@@ -104,7 +104,6 @@ export class GameScene extends Phaser.Scene {
       this.cameras.main.height / 2,
       'truck'
     );
-    this.truck.setScale(0.5); // Fixed scale
 
     // Create drop zone graphics
     this.dropZoneGraphics = this.add.graphics();
