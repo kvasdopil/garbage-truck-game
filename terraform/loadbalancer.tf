@@ -36,6 +36,11 @@ resource "google_compute_url_map" "default" {
     path_rule {
       paths   = ["/*"]
       service = google_compute_backend_bucket.default.id
+      route_action {
+        url_rewrite {
+          path_prefix_rewrite = "/${var.bucket_path}/"
+        }
+      }
     }
   }
 }
