@@ -61,10 +61,16 @@ export class GarbageManager {
     // All garbage types
     const garbageTypes: GarbageType[] = [
       GarbageType.CAN,
-      GarbageType.APPLE,
-      GarbageType.BOTTLE,
-      GarbageType.BAG,
-      GarbageType.BANANA,
+      // Food garbage types
+      GarbageType.FOOD1,
+      GarbageType.FOOD2,
+      GarbageType.FOOD3,
+      GarbageType.FOOD4,
+      // Plastic garbage types
+      GarbageType.PLASTIC1,
+      GarbageType.PLASTIC2,
+      GarbageType.PLASTIC3,
+      GarbageType.PLASTIC4,
     ];
 
     // Choose a random garbage type

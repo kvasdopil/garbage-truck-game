@@ -51,10 +51,29 @@ export class GameScene extends Phaser.Scene {
     this.load.image('bin-food-empty', 'bin-food-empty.png'); // Empty food bin
     this.load.image('bin-food-full', 'bin-food-full.png'); // Full food bin
     this.load.image('garbage-can', 'garbage-can.png'); // Garbage can image
-    this.load.image('garbage-apple', 'garbage-apple.png'); // Apple garbage image
-    this.load.image('garbage-bottle', 'garbage-bottle.png'); // Bottle garbage image
-    this.load.image('garbage-bag', 'garbage-bag.png'); // Bag garbage image
-    this.load.image('garbage-banana', 'garbage-banana.png'); // Banana garbage image
+
+    // Load food garbage as spritesheet (2x2 grid)
+    this.load.spritesheet('garbage-food', 'garbage-food.png', {
+      frameWidth: 512, // Assuming each frame is 32x32 pixels
+      frameHeight: 512,
+      spacing: 0,
+    });
+
+    // Load plastic garbage as spritesheet (2x2 grid)
+    this.load.spritesheet('garbage-plastic', 'garbage-plastic.png', {
+      frameWidth: 512, // Assuming each frame is 512x512 pixels
+      frameHeight: 512,
+      spacing: 0,
+    });
+
+    // Remove individual food garbage images
+    // this.load.image('garbage-apple', 'garbage-apple.png'); // Apple garbage image
+    // this.load.image('garbage-banana', 'garbage-banana.png'); // Banana garbage image
+
+    // Remove individual plastic garbage images
+    // this.load.image('garbage-bottle', 'garbage-bottle.png'); // Bottle garbage image
+    // this.load.image('garbage-bag', 'garbage-bag.png'); // Bag garbage image
+
     this.load.image('drop-zone-icon', 'drop-zone-icon.png'); // Drop zone icon
   }
 

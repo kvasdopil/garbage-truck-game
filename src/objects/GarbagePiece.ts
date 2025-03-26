@@ -3,17 +3,26 @@ import { BinType } from './GarbageBin';
 
 export enum GarbageType {
   CAN = 'garbage-can',
-  APPLE = 'garbage-apple',
-  BOTTLE = 'garbage-bottle',
-  BAG = 'garbage-bag',
-  BANANA = 'garbage-banana',
+  FOOD1 = 'food1',
+  FOOD2 = 'food2',
+  FOOD3 = 'food3',
+  FOOD4 = 'food4',
+  PLASTIC1 = 'plastic1',
+  PLASTIC2 = 'plastic2',
+  PLASTIC3 = 'plastic3',
+  PLASTIC4 = 'plastic4',
 }
 
 // Map of which bin types accept which garbage types
 export const GARBAGE_ACCEPTANCE_MAP: Record<BinType, GarbageType[]> = {
   [BinType.GENERIC]: [GarbageType.CAN],
-  [BinType.PLASTIC]: [GarbageType.BOTTLE, GarbageType.BAG],
-  [BinType.FOOD]: [GarbageType.APPLE, GarbageType.BANANA],
+  [BinType.PLASTIC]: [
+    GarbageType.PLASTIC1,
+    GarbageType.PLASTIC2,
+    GarbageType.PLASTIC3,
+    GarbageType.PLASTIC4,
+  ],
+  [BinType.FOOD]: [GarbageType.FOOD1, GarbageType.FOOD2, GarbageType.FOOD3, GarbageType.FOOD4],
 };
 
 export class GarbagePiece extends Phaser.GameObjects.Sprite {
@@ -29,7 +38,58 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
   };
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: GarbageType) {
-    super(scene, x, y, type);
+    // For food and plastic items, use the spritesheet with frame index
+    let texture: string = type as string;
+    let frame = undefined;
+
+    if (
+      type === GarbageType.FOOD1 ||
+      type === GarbageType.FOOD2 ||
+      type === GarbageType.FOOD3 ||
+      type === GarbageType.FOOD4
+    ) {
+      // Map food types to frame indices (0-based)
+      texture = 'garbage-food';
+      switch (type) {
+        case GarbageType.FOOD1:
+          frame = 0;
+          break;
+        case GarbageType.FOOD2:
+          frame = 1;
+          break;
+        case GarbageType.FOOD3:
+          frame = 2;
+          break;
+        case GarbageType.FOOD4:
+          frame = 3;
+          break;
+      }
+    } else if (
+      type === GarbageType.PLASTIC1 ||
+      type === GarbageType.PLASTIC2 ||
+      type === GarbageType.PLASTIC3 ||
+      type === GarbageType.PLASTIC4
+    ) {
+      // Map plastic types to frame indices (0-based)
+      texture = 'garbage-plastic';
+      switch (type) {
+        case GarbageType.PLASTIC1:
+          frame = 0;
+          break;
+        case GarbageType.PLASTIC2:
+          frame = 1;
+          break;
+        case GarbageType.PLASTIC3:
+          frame = 2;
+          break;
+        case GarbageType.PLASTIC4:
+          frame = 3;
+          break;
+      }
+    }
+
+    // Call super with appropriate texture and frame
+    super(scene, x, y, texture, frame);
 
     this.garbageType = type;
     this.originalPosition = { x, y };
