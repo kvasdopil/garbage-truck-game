@@ -23,8 +23,7 @@ export class GameScene extends Phaser.Scene {
   private truckDropZone!: Phaser.GameObjects.Zone;
   private homeDropZones: Phaser.GameObjects.Zone[] = [];
   private dropZoneGraphics!: Phaser.GameObjects.Graphics;
-  private baseScale: number = 0.27; // Base scale for reference
-  private originalBinScale: number = 0.27; // Store original bin scale for reference
+  private binScale: number = 0.2; // Fixed scale for bins
   private lastValidPositions: { x: number; y: number }[] = []; // Track each bin's last valid position
   private activeBinZones: Map<Phaser.GameObjects.Sprite, Phaser.GameObjects.Zone | null> =
     new Map(); // Track which bin is in which zone
@@ -34,10 +33,6 @@ export class GameScene extends Phaser.Scene {
   private animContainer: Phaser.GameObjects.Container | null = null; // Container for animation
   private currentAnimatingBin: Phaser.GameObjects.Sprite | null = null; // Track which bin is animating
   private isDragging: boolean = false; // Track if any object is being dragged
-
-  // Responsive sizing factors
-  private static BASE_WIDTH: number = 1024; // Reference width for scaling calculations
-  private static BASE_HEIGHT: number = 768; // Reference height for scaling calculations
 
   // Garbage system
   private garbageTypes: string[] = [
@@ -65,7 +60,7 @@ export class GameScene extends Phaser.Scene {
   private garbageAnimParams = {
     entryDuration: 600, // ms
     bounceDuration: 250, // ms
-    scale: 0.1, // Smaller scale for garbage pieces
+    scale: 0.1, // Scale for garbage pieces
     bounceHeight: 20, // pixels
     spacing: 100, // Horizontal spacing between garbage pieces
     yPosition: 60, // Y-position for garbage pieces
@@ -91,22 +86,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // Calculate the scale factor based on screen size
-    this.calculateScalingFactors();
-
     // Create the truck sprite
     this.truck = this.add.sprite(
       this.cameras.main.width * 0.25, // Left third of screen
       this.cameras.main.height / 2,
       'truck'
     );
-    this.truck.setScale(0.5 * this.getScaleFactor()); // Adjust scale as needed
+    this.truck.setScale(0.5); // Fixed scale
 
     // Create drop zone graphics
     this.dropZoneGraphics = this.add.graphics();
 
     // Zone dimensions
-    const zoneWidth = this.cameras.main.width * 0.105; // Reduced by 30% from 0.15
+    const zoneWidth = this.cameras.main.width * 0.105;
     const zoneHeight = this.cameras.main.height * 0.25;
 
     // Create drop zone immediately to the right of truck
@@ -142,16 +134,13 @@ export class GameScene extends Phaser.Scene {
     const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
     const binColorsFull = ['bin-green-full', 'bin-blue-full', 'bin-yellow-full'];
 
-    // Calculate the bin scale based on screen size
-    this.originalBinScale = this.baseScale * this.getScaleFactor();
-
     for (let i = 0; i < 3; i++) {
       const bin = this.add.sprite(
         this.cameras.main.width * 0.75, // Right side of screen
         homePositionsY[i],
         binColors[i] // Start with empty bins
       );
-      bin.setScale(this.originalBinScale);
+      bin.setScale(this.binScale);
 
       // Set initial valid position
       this.lastValidPositions[i] = {
@@ -181,9 +170,6 @@ export class GameScene extends Phaser.Scene {
     // Setup drag events
     this.setupDragEvents();
 
-    // Resize handler
-    this.scale.on('resize', this.handleResize, this);
-
     // Start the garbage spawning system
     this.garbageTimer = this.time.addEvent({
       delay: GameScene.GARBAGE_SPAWN_INTERVAL, // Use the constant value
@@ -194,39 +180,6 @@ export class GameScene extends Phaser.Scene {
 
     // Spawn initial garbage immediately
     this.spawnRandomGarbage();
-  }
-
-  /**
-   * Calculate responsive scaling factors based on screen dimensions
-   */
-  private calculateScalingFactors() {
-    // Update garbage animation parameters based on screen size
-    const scaleFactor = this.getScaleFactor();
-    this.garbageAnimParams.scale = 0.1 * scaleFactor;
-    this.garbageAnimParams.spacing = 100 * scaleFactor;
-    this.garbageAnimParams.bounceHeight = 20 * scaleFactor;
-    this.garbageAnimParams.yPosition = 60 * scaleFactor;
-  }
-
-  /**
-   * Returns a scale factor based on screen dimensions to make the game responsive
-   */
-  private getScaleFactor(): number {
-    // Get current screen dimensions
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-
-    // Calculate scale factors for width and height
-    const widthFactor = width / GameScene.BASE_WIDTH;
-    const heightFactor = height / GameScene.BASE_HEIGHT;
-
-    // Use the smaller factor to ensure content fits on screen
-    const factor = Math.min(widthFactor, heightFactor);
-
-    // Clamp to a reasonable range to prevent elements from being too small or too large
-    const minFactor = 0.5;
-    const maxFactor = 1.5;
-    return Math.max(minFactor, Math.min(factor, maxFactor));
   }
 
   private setupDragEvents() {
@@ -257,7 +210,7 @@ export class GameScene extends Phaser.Scene {
           // Increase size when dragging starts
           this.tweens.add({
             targets: gameObject,
-            scale: this.originalBinScale * 1.15,
+            scale: this.binScale * 1.15,
             duration: 200,
             ease: 'Power1',
           });
@@ -279,7 +232,7 @@ export class GameScene extends Phaser.Scene {
     this.input.on(
       'drag',
       (
-        _pointer: Phaser.Input.Pointer,
+        pointer: Phaser.Input.Pointer,
         gameObject: Phaser.GameObjects.Sprite,
         dragX: number,
         dragY: number
@@ -295,11 +248,13 @@ export class GameScene extends Phaser.Scene {
 
           // Check if over any drop zone (only for bins)
           if (this.bins.includes(gameObject)) {
-            this.checkDropZoneHover(body, gameObject);
+            // Use pointer position for intersection instead of object bounds
+            this.checkDropZoneHover(pointer.x, pointer.y, gameObject);
           }
           // Check if garbage is over bins (only for garbage)
           else if (this.garbagePieces.includes(gameObject)) {
-            this.checkGarbageHoverOverBins(body, gameObject);
+            // Use pointer position for intersection instead of object bounds
+            this.checkGarbageHoverOverBins(pointer.x, pointer.y, gameObject);
           }
         }
       }
@@ -308,7 +263,7 @@ export class GameScene extends Phaser.Scene {
     // Drag end event
     this.input.on(
       'dragend',
-      (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+      (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
         // Reset dragging state
         this.isDragging = false;
 
@@ -317,18 +272,17 @@ export class GameScene extends Phaser.Scene {
         // If it's a bin
         if (this.bins.includes(sprite)) {
           const bin = sprite; // Rename for clarity
-          const binBody = bin.body as Phaser.Physics.Arcade.Body;
           const binIndex = this.bins.indexOf(bin);
 
-          // Check if bin is dropped in any zone
-          const binRect = new Phaser.Geom.Rectangle(
-            binBody.x,
-            binBody.y,
-            binBody.width,
-            binBody.height
-          );
+          // Create a point for cursor position
+          const pointerPosition = new Phaser.Math.Vector2(pointer.x, pointer.y);
 
-          // Get truck zone rectangle
+          // Check which zone (if any) the bin was dropped in
+          let droppedInZone = false;
+          let targetPosition = { x: 0, y: 0 };
+          let targetZone: Phaser.GameObjects.Zone | null = null;
+
+          // Check truck zone first
           const truckZoneBody = this.truckDropZone.body as Phaser.Physics.Arcade.Body;
           const truckZoneRect = new Phaser.Geom.Rectangle(
             truckZoneBody.x,
@@ -337,20 +291,8 @@ export class GameScene extends Phaser.Scene {
             truckZoneBody.height
           );
 
-          // Create rectangles for all home zones
-          const homeZoneRects = this.homeDropZones.map(zone => {
-            const body = zone.body as Phaser.Physics.Arcade.Body;
-            return new Phaser.Geom.Rectangle(body.x, body.y, body.width, body.height);
-          });
-
-          // Check which zone (if any) the bin was dropped in
-          let droppedInZone = false;
-          let targetPosition = { x: 0, y: 0 };
-          let targetZone: Phaser.GameObjects.Zone | null = null;
-
-          // Check truck zone first
           if (
-            Phaser.Geom.Rectangle.Overlaps(binRect, truckZoneRect) &&
+            Phaser.Geom.Rectangle.Contains(truckZoneRect, pointerPosition.x, pointerPosition.y) &&
             !this.zoneOccupants.get(this.truckDropZone)
           ) {
             // Dropped in truck zone and it's empty
@@ -369,7 +311,7 @@ export class GameScene extends Phaser.Scene {
             // After positioning at truck zone, play the tipping animation if bin is not empty
             this.tweens.add({
               targets: bin,
-              scale: this.originalBinScale * 1.3,
+              scale: this.binScale * 1.3,
               duration: 200,
               yoyo: true,
               onComplete: () => {
@@ -377,7 +319,7 @@ export class GameScene extends Phaser.Scene {
                   targets: bin,
                   x: targetPosition.x,
                   y: targetPosition.y,
-                  scale: this.originalBinScale,
+                  scale: this.binScale,
                   duration: 300,
                   ease: 'Back.out',
                   onComplete: () => {
@@ -392,8 +334,20 @@ export class GameScene extends Phaser.Scene {
           } else {
             // Check all home zones
             for (let i = 0; i < this.homeDropZones.length; i++) {
+              const homeZoneBody = this.homeDropZones[i].body as Phaser.Physics.Arcade.Body;
+              const homeZoneRect = new Phaser.Geom.Rectangle(
+                homeZoneBody.x,
+                homeZoneBody.y,
+                homeZoneBody.width,
+                homeZoneBody.height
+              );
+
               if (
-                Phaser.Geom.Rectangle.Overlaps(binRect, homeZoneRects[i]) &&
+                Phaser.Geom.Rectangle.Contains(
+                  homeZoneRect,
+                  pointerPosition.x,
+                  pointerPosition.y
+                ) &&
                 !this.zoneOccupants.get(this.homeDropZones[i])
               ) {
                 // Dropped in an empty home zone
@@ -415,7 +369,7 @@ export class GameScene extends Phaser.Scene {
                 // Regular animation for home zone (no tipping)
                 this.tweens.add({
                   targets: bin,
-                  scale: this.originalBinScale * 1.3,
+                  scale: this.binScale * 1.3,
                   duration: 200,
                   yoyo: true,
                   onComplete: () => {
@@ -423,7 +377,7 @@ export class GameScene extends Phaser.Scene {
                       targets: bin,
                       x: targetPosition.x,
                       y: targetPosition.y,
-                      scale: this.originalBinScale,
+                      scale: this.binScale,
                       duration: 300,
                       ease: 'Back.out',
                     });
@@ -440,9 +394,25 @@ export class GameScene extends Phaser.Scene {
               targets: bin,
               x: this.lastValidPositions[binIndex].x,
               y: this.lastValidPositions[binIndex].y,
-              scale: this.originalBinScale,
+              scale: this.binScale,
               duration: 400,
               ease: 'Back.out',
+              onComplete: () => {
+                // Find which zone corresponds to this position and update mappings
+                for (const zone of [...this.homeDropZones, this.truckDropZone]) {
+                  if (
+                    Math.abs(zone.x - this.lastValidPositions[binIndex].x) < 10 &&
+                    Math.abs(zone.y - this.lastValidPositions[binIndex].y) < 10
+                  ) {
+                    // Update zone mappings
+                    this.activeBinZones.set(bin, zone);
+                    this.zoneOccupants.set(zone, bin);
+                    break;
+                  }
+                }
+                // Redraw zones
+                this.drawDropZones();
+              },
             });
           }
 
@@ -459,17 +429,14 @@ export class GameScene extends Phaser.Scene {
             ease: 'Power1',
           });
 
-          // Check for collision with bins
-          this.checkGarbageCollisionWithBins(sprite);
+          // Check for collision with bins using cursor position
+          this.checkGarbageCollisionWithBins(sprite, pointer.x, pointer.y);
         }
       }
     );
   }
 
-  private checkDropZoneHover(binBody: Phaser.Physics.Arcade.Body, bin: Phaser.GameObjects.Sprite) {
-    // Create bin rectangle
-    const binRect = new Phaser.Geom.Rectangle(binBody.x, binBody.y, binBody.width, binBody.height);
-
+  private checkDropZoneHover(pointerX: number, pointerY: number, bin: Phaser.GameObjects.Sprite) {
     // Check truck zone
     const truckZoneBody = this.truckDropZone.body as Phaser.Physics.Arcade.Body;
     const truckZoneRect = new Phaser.Geom.Rectangle(
@@ -478,17 +445,18 @@ export class GameScene extends Phaser.Scene {
       truckZoneBody.width,
       truckZoneBody.height
     );
+
     const highlightTruck =
-      Phaser.Geom.Rectangle.Overlaps(binRect, truckZoneRect) &&
+      Phaser.Geom.Rectangle.Contains(truckZoneRect, pointerX, pointerY) &&
       !this.zoneOccupants.get(this.truckDropZone);
 
     // Check all home zones
-    const highlightHomeZones = this.homeDropZones.map((zone, index) => {
+    const highlightHomeZones = this.homeDropZones.map(zone => {
       const body = zone.body as Phaser.Physics.Arcade.Body;
       const rect = new Phaser.Geom.Rectangle(body.x, body.y, body.width, body.height);
       // Only highlight if zone is empty (or occupied by the current bin)
       return (
-        Phaser.Geom.Rectangle.Overlaps(binRect, rect) &&
+        Phaser.Geom.Rectangle.Contains(rect, pointerX, pointerY) &&
         (!this.zoneOccupants.get(zone) || this.zoneOccupants.get(zone) === bin)
       );
     });
@@ -551,70 +519,6 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private handleResize(gameSize: Phaser.Structs.Size) {
-    // Update camera
-    this.cameras.main.setSize(gameSize.width, gameSize.height);
-
-    // Recalculate scaling factors
-    this.calculateScalingFactors();
-    const scaleFactor = this.getScaleFactor();
-
-    // Update the original bin scale
-    this.originalBinScale = this.baseScale * scaleFactor;
-
-    // Update truck scale and position
-    this.truck.setScale(0.5 * scaleFactor);
-    this.truck.setPosition(gameSize.width * 0.25, gameSize.height / 2);
-
-    // Calculate zone dimensions
-    const zoneWidth = gameSize.width * 0.07; // Reduced by 30% from 0.1
-    const zoneHeight = gameSize.height * 0.1;
-
-    // Update truck drop zone - now to the right of the truck
-    this.truckDropZone.setPosition(
-      gameSize.width * 0.25 + this.truck.width * 0.25 + zoneWidth * 0.5,
-      gameSize.height / 2
-    );
-    this.truckDropZone.setSize(zoneWidth, zoneHeight);
-    (this.truckDropZone.body as Phaser.Physics.Arcade.Body).setSize(zoneWidth, zoneHeight);
-    (this.truckDropZone.body as Phaser.Physics.Arcade.Body).updateFromGameObject();
-
-    // Update home drop zones
-    const homePositionsY = [
-      gameSize.height * 0.25, // Top
-      gameSize.height * 0.5, // Middle
-      gameSize.height * 0.75, // Bottom
-    ];
-
-    this.homeDropZones.forEach((zone, index) => {
-      zone.setPosition(gameSize.width * 0.75, homePositionsY[index]);
-      zone.setSize(zoneWidth, zoneHeight);
-      (zone.body as Phaser.Physics.Arcade.Body).setSize(zoneWidth, zoneHeight);
-      (zone.body as Phaser.Physics.Arcade.Body).updateFromGameObject();
-    });
-
-    // Update bins' positions and scale
-    this.bins.forEach((bin, index) => {
-      bin.setScale(this.originalBinScale);
-
-      const currentZone = this.activeBinZones.get(bin);
-      if (currentZone) {
-        // If bin is in a zone, update its position to the zone's position
-        bin.setPosition(currentZone.x, currentZone.y);
-        this.lastValidPositions[index] = { x: currentZone.x, y: currentZone.y };
-      }
-    });
-
-    // Update garbage pieces positions and scale
-    this.garbagePieces.forEach(garbage => {
-      garbage.setScale(this.garbageAnimParams.scale);
-    });
-    this.updateGarbagePositions();
-
-    // Redraw drop zones
-    this.drawDropZones();
-  }
-
   /**
    * Plays the bin tipping animation when bin is placed at the truck
    * The bin rotates 120 degrees CCW around its bottom left corner
@@ -637,11 +541,11 @@ export class GameScene extends Phaser.Scene {
 
     // Create a clone of the bin for animation
     const animBin = this.add.sprite(0, 0, bin.texture.key);
-    animBin.setScale(this.originalBinScale);
+    animBin.setScale(this.binScale);
 
     // Offset the bin within the container to rotate around bottom-left corner
-    const width = animBin.width * this.originalBinScale;
-    const height = animBin.height * this.originalBinScale;
+    const width = animBin.width * this.binScale;
+    const height = animBin.height * this.binScale;
     animBin.x = width * this.tippingAnimParams.pivotOrigin.x;
     animBin.y = -height * (1 - this.tippingAnimParams.pivotOrigin.y);
 
@@ -785,44 +689,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Updates the positions of all garbage pieces
-   * This is only used when the screen resizes, not for normal gameplay
-   */
-  private updateGarbagePositions() {
-    // We only reposition garbage during screen resizes
-    // Each piece keeps its relative position on screen
-    for (let i = 0; i < this.garbagePieces.length; i++) {
-      const garbage = this.garbagePieces[i];
-      // Only update if the screen size changed dramatically
-      if (garbage.y !== this.garbageAnimParams.yPosition && !this.tweens.isTweening(garbage)) {
-        garbage.y = this.garbageAnimParams.yPosition;
-      }
-    }
-  }
-
-  /**
-   * Calculates the X position for a garbage piece based on its index
-   * This is only used for returning garbage to position after failed placement
-   */
-  private calculateGarbageXPosition(index: number): number {
-    // In the new system, we just return the current X position
-    // since each piece stays where it spawned
-    const garbage = this.garbagePieces[index];
-    return garbage.x;
-  }
-
-  /**
    * Checks if a garbage piece collides with any bin that is in a home drop zone
    */
-  private checkGarbageCollisionWithBins(garbage: Phaser.GameObjects.Sprite) {
-    const garbageBody = garbage.body as Phaser.Physics.Arcade.Body;
-    const garbageRect = new Phaser.Geom.Rectangle(
-      garbageBody.x,
-      garbageBody.y,
-      garbageBody.width,
-      garbageBody.height
-    );
-
+  private checkGarbageCollisionWithBins(
+    garbage: Phaser.GameObjects.Sprite,
+    pointerX: number,
+    pointerY: number
+  ) {
     let collidedWithValidBin = false;
 
     // Check each bin
@@ -835,8 +708,8 @@ export class GameScene extends Phaser.Scene {
         binBody.height
       );
 
-      // Check if garbage overlaps with bin
-      if (Phaser.Geom.Rectangle.Overlaps(garbageRect, binRect)) {
+      // Check if pointer position overlaps with bin
+      if (Phaser.Geom.Rectangle.Contains(binRect, pointerX, pointerY)) {
         // Get the zone the bin is in (if any)
         const binZone = this.activeBinZones.get(bin);
 
@@ -853,7 +726,7 @@ export class GameScene extends Phaser.Scene {
           // Play a quick scale animation as visual feedback
           this.tweens.add({
             targets: bin,
-            scale: this.originalBinScale * 1.1,
+            scale: this.binScale * 1.1,
             duration: 100,
             yoyo: true,
             ease: 'Power1',
@@ -898,22 +771,15 @@ export class GameScene extends Phaser.Scene {
    * Checks if a garbage piece is hovering over bins and shows visual feedback
    */
   private checkGarbageHoverOverBins(
-    garbageBody: Phaser.Physics.Arcade.Body,
+    pointerX: number,
+    pointerY: number,
     garbage: Phaser.GameObjects.Sprite
   ) {
-    // Create garbage rectangle for collision detection
-    const garbageRect = new Phaser.Geom.Rectangle(
-      garbageBody.x,
-      garbageBody.y,
-      garbageBody.width,
-      garbageBody.height
-    );
-
     // Reset all bins to original scale first
     this.bins.forEach(bin => {
       // Skip the bin if it's currently being animated
       if (bin === this.currentAnimatingBin) return;
-      bin.setScale(this.originalBinScale);
+      bin.setScale(this.binScale);
     });
 
     // Check each bin
@@ -929,15 +795,15 @@ export class GameScene extends Phaser.Scene {
         binBody.height
       );
 
-      // Check if garbage overlaps with bin
-      if (Phaser.Geom.Rectangle.Overlaps(garbageRect, binRect)) {
+      // Check if pointer position overlaps with bin
+      if (Phaser.Geom.Rectangle.Contains(binRect, pointerX, pointerY)) {
         // Get the zone the bin is in (if any)
         const binZone = this.activeBinZones.get(bin);
 
         // Only highlight bins that are in home zones (not truck zone)
         if (binZone && this.homeDropZones.includes(binZone)) {
           // Highlight bin by increasing its scale
-          bin.setScale(this.originalBinScale * 1.1);
+          bin.setScale(this.binScale * 1.1);
           break;
         }
       }
