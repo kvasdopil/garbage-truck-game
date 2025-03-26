@@ -60,7 +60,6 @@ export class GarbageManager {
 
     // All garbage types
     const garbageTypes: GarbageType[] = [
-      GarbageType.CAN,
       // Food garbage types
       GarbageType.FOOD1,
       GarbageType.FOOD2,

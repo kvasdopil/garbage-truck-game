@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { BinType } from './GarbageBin';
 
 export enum GarbageType {
-  CAN = 'garbage-can',
   FOOD1 = 'food1',
   FOOD2 = 'food2',
   FOOD3 = 'food3',
@@ -20,7 +19,6 @@ export enum GarbageType {
 // Map of which bin types accept which garbage types
 export const GARBAGE_ACCEPTANCE_MAP: Record<BinType, GarbageType[]> = {
   [BinType.GENERIC]: [
-    GarbageType.CAN,
     GarbageType.PAPER1,
     GarbageType.PAPER2,
     GarbageType.PAPER3,
