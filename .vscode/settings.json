@@ -9,4 +9,4 @@
   },
   "eslint.validate": ["typescript"],
   "typescript.tsdk": "node_modules/typescript/lib"
-} 
+}
