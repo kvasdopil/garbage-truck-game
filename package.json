@@ -1,0 +1,19 @@
+{
+  "name": "garbage-truck-game",
+  "version": "1.0.0",
+  "description": "A touch-friendly garbage truck game for kids",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.162.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.162.0",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.4"
+  }
+} 
