@@ -12,7 +12,6 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
   private isEmpty: boolean = true;
   private currentZone: DropZone | null = null;
   private lastValidPosition: { x: number; y: number };
-  private binScale: number = 1;
 
   // Textures for different bin states
   private emptyTexture: string;
@@ -41,7 +40,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
     scene.add.existing(this);
 
     // Set a reasonable scale
-    this.setScale(this.binScale);
+    this.setScale(1.0);
 
     // Set initial position data
     this.lastValidPosition = { x, y };
@@ -123,7 +122,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
    * Get the original scale
    */
   getOriginalScale(): number {
-    return this.binScale;
+    return 1.0;
   }
 
   /**
@@ -151,7 +150,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
     // Increase size when dragging starts
     this.scene.tweens.add({
       targets: this,
-      scale: this.binScale * 1.15,
+      scale: 1.0 * 1.15,
       duration: 200,
       ease: 'Power1',
     });
@@ -180,7 +179,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
       // Animation sequence
       this.scene.tweens.add({
         targets: this,
-        scale: this.getOriginalScale() * 1.3,
+        scale: 1.3,
         duration: 200,
         yoyo: true,
         onComplete: () => {
@@ -188,7 +187,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
             targets: this,
             x: zone.x,
             y: zone.y,
-            scale: this.getOriginalScale(),
+            scale: 1.0,
             duration: 300,
             ease: 'Back.out',
             onComplete: () => {
@@ -216,7 +215,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
         targets: this,
         x: lastPosition.x,
         y: lastPosition.y,
-        scale: this.binScale,
+        scale: 1.0,
         duration: 400,
         ease: 'Back.out',
         onComplete: () => {
@@ -231,9 +230,9 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
    */
   highlight(shouldHighlight: boolean): void {
     if (shouldHighlight) {
-      this.setScale(this.binScale * 1.1);
+      this.setScale(1.1);
     } else {
-      this.setScale(this.binScale);
+      this.setScale(1.0);
     }
   }
 
@@ -244,13 +243,13 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
     return new Promise(resolve => {
       this.scene.tweens.add({
         targets: this,
-        scale: this.binScale * 1.1,
+        scale: 1.1,
         duration: 100,
         yoyo: true,
         ease: 'Power1',
         onComplete: () => {
           // Make sure bin returns to original scale
-          this.setScale(this.binScale);
+          this.setScale(1.0);
           resolve();
         },
       });
@@ -277,11 +276,11 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
 
       // Create a clone of the bin for animation
       const animBin = this.scene.add.sprite(0, 0, this.texture.key);
-      animBin.setScale(this.binScale);
+      animBin.setScale(1.0);
 
       // Offset the bin within the container to rotate around bottom-left corner
-      const width = animBin.width * this.binScale;
-      const height = animBin.height * this.binScale;
+      const width = animBin.width * 1.0;
+      const height = animBin.height * 1.0;
       animBin.x = width * this.tippingAnimParams.pivotOrigin.x;
       animBin.y = -height * (1 - this.tippingAnimParams.pivotOrigin.y);
 
