@@ -41,4 +41,7 @@ Thumbs.db
 
 # Cache
 .cache/
-.temp/ 
+.temp/
+
+# ESLint
+.eslintcache 
