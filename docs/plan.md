@@ -51,3 +51,4 @@ A touch-friendly browser game designed for 4-year-olds, featuring garbage trucks
 - start every response with robot emoji
 - do not suggest git commit unless explicitly asked by user
 - always run lint and format before commit
+- do not ask user to run dev server

@@ -1,26 +1,24 @@
-import { SceneSetup } from './scene/setup';
-import { GameContent } from './scene/content';
+import Phaser from 'phaser';
+import { GameScene } from './scenes/GameScene';
 
-// Get canvas element
-const canvas = document.querySelector('#game-canvas') as HTMLCanvasElement;
+const config: Phaser.Types.Core.GameConfig = {
+  type: Phaser.AUTO,
+  width: window.innerWidth,
+  height: window.innerHeight,
+  parent: 'game',
+  backgroundColor: '#ffffff',
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { x: 0, y: 0 },
+      debug: false,
+    },
+  },
+  scene: [GameScene],
+};
 
-// Create scene setup
-const sceneSetup = new SceneSetup(canvas);
-
-// Create game content
-const gameContent = new GameContent(sceneSetup);
-
-// Animation loop
-function animate() {
-  requestAnimationFrame(animate);
-  sceneSetup.render();
-}
-
-// Start animation loop
-animate();
-
-// Clean up on window unload
-window.addEventListener('unload', () => {
-  gameContent.dispose();
-  sceneSetup.dispose();
-});
+new Phaser.Game(config);
