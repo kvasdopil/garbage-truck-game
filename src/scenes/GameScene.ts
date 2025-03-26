@@ -16,61 +16,22 @@ import Phaser from 'phaser';
  - garbage pieces can be dragged to the bins, when the bin is parked in the home zone
  - when anything is dragged, spawning of garbage pieces is paused
 */
+// import Phaser from 'phaser';
+import { GarbageBin, BinType } from '../objects/GarbageBin';
+import { GarbagePiece } from '../objects/GarbagePiece';
+import { DropZone, ZoneType } from '../objects/DropZone';
+import { GarbageManager } from '../objects/GarbageManager';
 
 export class GameScene extends Phaser.Scene {
   private truck!: Phaser.GameObjects.Sprite;
-  private bins: Phaser.GameObjects.Sprite[] = [];
-  private truckDropZone!: Phaser.GameObjects.Zone;
-  private homeDropZones: Phaser.GameObjects.Zone[] = [];
+  private bins: GarbageBin[] = [];
+  private truckDropZone!: DropZone;
+  private homeDropZones: DropZone[] = [];
   private dropZoneGraphics!: Phaser.GameObjects.Graphics;
-  private binScale: number = 0.2; // Fixed scale for bins
-  private lastValidPositions: { x: number; y: number }[] = []; // Track each bin's last valid position
-  private activeBinZones: Map<Phaser.GameObjects.Sprite, Phaser.GameObjects.Zone | null> =
-    new Map(); // Track which bin is in which zone
-  private zoneOccupants: Map<Phaser.GameObjects.Zone, Phaser.GameObjects.Sprite | null> = new Map(); // Track which zone has which bin
-  private isAnimating: boolean = false; // Track if bin is currently animating
-  private emptyBins: Set<Phaser.GameObjects.Sprite> = new Set(); // Track which bins are empty
-  private animContainer: Phaser.GameObjects.Container | null = null; // Container for animation
-  private currentAnimatingBin: Phaser.GameObjects.Sprite | null = null; // Track which bin is animating
-  private isDragging: boolean = false; // Track if any object is being dragged
-  private binTypes: Map<Phaser.GameObjects.Sprite, string> = new Map(); // Track bin types
-  private binAcceptedGarbage: Map<string, string[]> = new Map(); // Track which garbage types each bin type accepts
-
-  // Garbage system
-  private garbageTypes: string[] = [
-    'garbage-can',
-    'garbage-apple',
-    'garbage-bottle',
-    'garbage-bag',
-    'garbage-banana',
-  ]; // Types of garbage
-  private garbagePieces: Phaser.GameObjects.Sprite[] = []; // Active garbage pieces
-  private garbageTimer!: Phaser.Time.TimerEvent; // Timer for spawning garbage
-  private maxGarbagePieces: number = 3; // Maximum number of garbage pieces visible
-  private static GARBAGE_SPAWN_INTERVAL: number = 3000; // Garbage spawn interval in ms (3 seconds)
-
-  // Animation parameters
-  private tippingAnimParams = {
-    rotationAngle: -120, // degrees (CCW)
-    rotationDuration: 400, // ms
-    holdDuration: 500, // ms
-    returnDuration: 400, // ms
-    easeFunction: 'Power1',
-    pivotOrigin: { x: 0, y: 1 }, // Bottom left corner pivot
-  };
-
-  // Garbage animation params
-  private garbageAnimParams = {
-    entryDuration: 600, // ms
-    bounceDuration: 250, // ms
-    scale: 0.1, // Scale for garbage pieces
-    bounceHeight: 20, // pixels
-    spacing: 100, // Horizontal spacing between garbage pieces
-    yPosition: 60, // Y-position for garbage pieces
-  };
-
-  private garbageStartPositions: Map<Phaser.GameObjects.Sprite, { x: number; y: number }> =
-    new Map(); // Track original positions of garbage
+  private isAnimating: boolean = false;
+  private isDragging: boolean = false;
+  private currentAnimatingBin: GarbageBin | null = null;
+  private garbageManager!: GarbageManager;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -94,13 +55,31 @@ export class GameScene extends Phaser.Scene {
     this.load.image('garbage-bottle', 'garbage-bottle.png'); // Bottle garbage image
     this.load.image('garbage-bag', 'garbage-bag.png'); // Bag garbage image
     this.load.image('garbage-banana', 'garbage-banana.png'); // Banana garbage image
+    this.load.image('drop-zone-icon', 'drop-zone-icon.png'); // Drop zone icon
   }
 
   create() {
-    // Initialize bin type accepted garbage
-    this.binAcceptedGarbage.set('generic', ['garbage-can']); // Generic accepts only cans
-    this.binAcceptedGarbage.set('plastic', ['garbage-bottle', 'garbage-bag']); // Plastic only accepts bottles and bags
-    this.binAcceptedGarbage.set('food', ['garbage-apple', 'garbage-banana']); // Food only accepts apples and bananas
+    // Create a light grey background for the home drop zone area
+    const homeDockBg = this.add.rectangle(
+      this.cameras.main.width * 0.75, // Same x position as home zones
+      this.cameras.main.height / 2, // Center of the screen
+      this.cameras.main.width * 0.2, // Width of background
+      this.cameras.main.height, // Full height of screen
+      0xcccccc, // Light grey color
+      0.5 // Alpha (transparency)
+    );
+    homeDockBg.setDepth(-1); // Place behind other elements
+
+    // // Create a light grey background for the truck drop zone area
+    // const truckDockBg = this.add.rectangle(
+    //   this.cameras.main.width * 0.25 + this.cameras.main.width * 0.05, // Aligned with where the truck zone will be
+    //   this.cameras.main.height / 2, // Center of the screen
+    //   this.cameras.main.width * 0.15, // Width of background
+    //   this.cameras.main.height, // Full height of screen
+    //   0xdddddd, // Slightly darker grey color
+    //   0.5 // Alpha (transparency)
+    // );
+    // truckDockBg.setDepth(-1); // Place behind other elements
 
     // Create the truck sprite
     this.truck = this.add.sprite(
@@ -113,19 +92,35 @@ export class GameScene extends Phaser.Scene {
     // Create drop zone graphics
     this.dropZoneGraphics = this.add.graphics();
 
+    // Create drop zones
+    this.createDropZones();
+
+    // Create bins
+    this.createBins();
+
+    // Setup input handlers
+    this.setupInputHandlers();
+
+    // Create garbage manager
+    this.garbageManager = new GarbageManager(this);
+    this.garbageManager.startSpawning();
+  }
+
+  private createDropZones(): void {
     // Zone dimensions
     const zoneWidth = this.cameras.main.width * 0.105;
     const zoneHeight = this.cameras.main.height * 0.25;
 
-    // Create drop zone immediately to the right of truck
-    this.truckDropZone = this.add.zone(
+    // Create truck drop zone
+    this.truckDropZone = new DropZone(
+      this,
       this.cameras.main.width * 0.25 + this.truck.width * 0.25 + zoneWidth * 0.5, // Right side of truck
       this.cameras.main.height / 2, // Same y as truck
       zoneWidth,
-      zoneHeight
+      zoneHeight,
+      ZoneType.TRUCK,
+      this.dropZoneGraphics
     );
-    this.physics.world.enable(this.truckDropZone, Phaser.Physics.Arcade.STATIC_BODY);
-    this.zoneOccupants.set(this.truckDropZone, null);
 
     // Create three home drop zones (top, middle, bottom)
     const homePositionsY = [
@@ -135,118 +130,66 @@ export class GameScene extends Phaser.Scene {
     ];
 
     for (const posY of homePositionsY) {
-      const homeZone = this.add.zone(
+      const homeZone = new DropZone(
+        this,
         this.cameras.main.width * 0.75, // Right side of screen
         posY,
         zoneWidth,
-        zoneHeight
+        zoneHeight,
+        ZoneType.HOME,
+        this.dropZoneGraphics
       );
-      this.physics.world.enable(homeZone, Phaser.Physics.Arcade.STATIC_BODY);
       this.homeDropZones.push(homeZone);
-      this.zoneOccupants.set(homeZone, null);
     }
+  }
 
+  private createBins(): void {
     // Create the 3 bin sprites at each home position
-    const binTypes = ['plastic', 'food', 'generic']; // First is plastic, second is food, third is generic
-    const binEmptyTextures = ['bin-plastic-empty', 'bin-food-empty', 'bin-green']; // Updated textures
-    const binFullTextures = ['bin-plastic-full', 'bin-food-full', 'bin-green-full']; // Updated textures
+    const binTypes = [BinType.PLASTIC, BinType.FOOD, BinType.GENERIC];
 
     for (let i = 0; i < 3; i++) {
-      const bin = this.add.sprite(
-        this.cameras.main.width * 0.75, // Right side of screen
-        homePositionsY[i],
-        binEmptyTextures[i] // Start with empty bins
+      const bin = new GarbageBin(
+        this,
+        this.homeDropZones[i].x,
+        this.homeDropZones[i].y,
+        binTypes[i]
       );
-      bin.setScale(this.binScale);
 
-      // Set bin type
-      this.binTypes.set(bin, binTypes[i]);
-
-      // Set initial valid position
-      this.lastValidPositions[i] = {
-        x: this.cameras.main.width * 0.75,
-        y: homePositionsY[i],
-      };
-
-      // Make bin interactive and draggable
+      // Make bins interactive and draggable
       bin.setInteractive();
       this.input.setDraggable(bin);
-
-      // Enable physics on the bin
-      this.physics.world.enable(bin);
 
       // Add to bins array
       this.bins.push(bin);
 
-      // Initialize bin states - all bins start empty
-      this.activeBinZones.set(bin, this.homeDropZones[i]);
-      this.zoneOccupants.set(this.homeDropZones[i], bin);
-      this.emptyBins.add(bin); // Mark bins as empty initially
+      // Set initial zone
+      this.homeDropZones[i].setOccupant(bin);
     }
 
-    // Draw drop zones
-    this.drawDropZones();
-
-    // Setup drag events
-    this.setupDragEvents();
-
-    // Start the garbage spawning system
-    this.garbageTimer = this.time.addEvent({
-      delay: GameScene.GARBAGE_SPAWN_INTERVAL, // Use the constant value
-      callback: this.spawnRandomGarbage,
-      callbackScope: this,
-      loop: true,
-    });
-
-    // Spawn initial garbage immediately
-    this.spawnRandomGarbage();
+    // Make sure all zones are properly drawn based on occupancy
+    this.redrawAllZones();
   }
 
-  private setupDragEvents() {
+  private setupInputHandlers(): void {
     // Drag start event
     this.input.on(
       'dragstart',
-      (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Sprite) => {
-        // Don't allow dragging if bin is animating
+      (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+        // Don't allow dragging if animation is in progress
         if (this.isAnimating) return;
 
-        // Set dragging state to true
+        // Set dragging state
         this.isDragging = true;
+        this.garbageManager.setDragging(true);
 
+        // Bring the object to the top
         this.children.bringToTop(gameObject);
 
-        // Check if the dragged object is a bin
-        if (this.bins.includes(gameObject)) {
-          // Remove bin from its current zone
-          const currentZone = this.activeBinZones.get(gameObject);
-          if (currentZone) {
-            this.zoneOccupants.set(currentZone, null);
-          }
-          this.activeBinZones.set(gameObject, null);
-
-          // Redraw zones
-          this.drawDropZones();
-
-          // Increase size when dragging starts
-          this.tweens.add({
-            targets: gameObject,
-            scale: this.binScale * 1.15,
-            duration: 200,
-            ease: 'Power1',
-          });
-        }
-        // If it's a garbage piece
-        else if (this.garbagePieces.includes(gameObject)) {
-          // Store the original position
-          this.garbageStartPositions.set(gameObject, { x: gameObject.x, y: gameObject.y });
-
-          // Increase size slightly when dragging garbage
-          this.tweens.add({
-            targets: gameObject,
-            scale: this.garbageAnimParams.scale * 1.2,
-            duration: 200,
-            ease: 'Power1',
-          });
+        // Handle different draggable object types
+        if (gameObject instanceof GarbageBin) {
+          this.handleBinDragStart(gameObject);
+        } else if (gameObject instanceof GarbagePiece) {
+          this.handleGarbageDragStart(gameObject);
         }
       }
     );
@@ -256,29 +199,20 @@ export class GameScene extends Phaser.Scene {
       'drag',
       (
         pointer: Phaser.Input.Pointer,
-        gameObject: Phaser.GameObjects.Sprite,
+        gameObject: Phaser.GameObjects.GameObject,
         dragX: number,
         dragY: number
       ) => {
-        gameObject.x = dragX;
-        gameObject.y = dragY;
+        // Update position for GameObjects with x/y properties
+        const gameObj = gameObject as Phaser.GameObjects.Sprite;
+        gameObj.x = dragX;
+        gameObj.y = dragY;
 
-        // Update physics body position
-        const body = gameObject.body as Phaser.Physics.Arcade.Body;
-        if (body) {
-          body.x = dragX - body.width / 2;
-          body.y = dragY - body.height / 2;
-
-          // Check if over any drop zone (only for bins)
-          if (this.bins.includes(gameObject)) {
-            // Use pointer position for intersection instead of object bounds
-            this.checkDropZoneHover(pointer.x, pointer.y, gameObject);
-          }
-          // Check if garbage is over bins (only for garbage)
-          else if (this.garbagePieces.includes(gameObject)) {
-            // Use pointer position for intersection instead of object bounds
-            this.checkGarbageHoverOverBins(pointer.x, pointer.y, gameObject);
-          }
+        // Handle different draggable object types
+        if (gameObject instanceof GarbageBin) {
+          this.handleBinDrag(gameObject, pointer);
+        } else if (gameObject instanceof GarbagePiece) {
+          this.handleGarbageDrag(gameObject, pointer);
         }
       }
     );
@@ -289,593 +223,250 @@ export class GameScene extends Phaser.Scene {
       (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
         // Reset dragging state
         this.isDragging = false;
+        this.garbageManager.setDragging(false);
 
-        const sprite = gameObject as Phaser.GameObjects.Sprite;
-
-        // If it's a bin
-        if (this.bins.includes(sprite)) {
-          const bin = sprite; // Rename for clarity
-          const binIndex = this.bins.indexOf(bin);
-
-          // Create a point for cursor position
-          const pointerPosition = new Phaser.Math.Vector2(pointer.x, pointer.y);
-
-          // Check which zone (if any) the bin was dropped in
-          let droppedInZone = false;
-          let targetPosition = { x: 0, y: 0 };
-          let targetZone: Phaser.GameObjects.Zone | null = null;
-
-          // Check truck zone first
-          const truckZoneBody = this.truckDropZone.body as Phaser.Physics.Arcade.Body;
-          const truckZoneRect = new Phaser.Geom.Rectangle(
-            truckZoneBody.x,
-            truckZoneBody.y,
-            truckZoneBody.width,
-            truckZoneBody.height
-          );
-
-          if (
-            Phaser.Geom.Rectangle.Contains(truckZoneRect, pointerPosition.x, pointerPosition.y) &&
-            !this.zoneOccupants.get(this.truckDropZone)
-          ) {
-            // Dropped in truck zone and it's empty
-            droppedInZone = true;
-            targetPosition = {
-              x: this.truckDropZone.x,
-              y: this.truckDropZone.y,
-            };
-            this.lastValidPositions[binIndex] = targetPosition;
-            targetZone = this.truckDropZone;
-
-            // Update zone mappings
-            this.activeBinZones.set(bin, this.truckDropZone);
-            this.zoneOccupants.set(this.truckDropZone, bin);
-
-            // After positioning at truck zone, play the tipping animation if bin is not empty
-            this.tweens.add({
-              targets: bin,
-              scale: this.binScale * 1.3,
-              duration: 200,
-              yoyo: true,
-              onComplete: () => {
-                this.tweens.add({
-                  targets: bin,
-                  x: targetPosition.x,
-                  y: targetPosition.y,
-                  scale: this.binScale,
-                  duration: 300,
-                  ease: 'Back.out',
-                  onComplete: () => {
-                    // Only play tipping animation if bin is not empty
-                    if (!this.emptyBins.has(bin)) {
-                      this.playBinTippingAnimation(bin);
-                    }
-                  },
-                });
-              },
-            });
-          } else {
-            // Check all home zones
-            for (let i = 0; i < this.homeDropZones.length; i++) {
-              const homeZoneBody = this.homeDropZones[i].body as Phaser.Physics.Arcade.Body;
-              const homeZoneRect = new Phaser.Geom.Rectangle(
-                homeZoneBody.x,
-                homeZoneBody.y,
-                homeZoneBody.width,
-                homeZoneBody.height
-              );
-
-              if (
-                Phaser.Geom.Rectangle.Contains(
-                  homeZoneRect,
-                  pointerPosition.x,
-                  pointerPosition.y
-                ) &&
-                !this.zoneOccupants.get(this.homeDropZones[i])
-              ) {
-                // Dropped in an empty home zone
-                droppedInZone = true;
-                targetPosition = {
-                  x: this.homeDropZones[i].x,
-                  y: this.homeDropZones[i].y,
-                };
-                this.lastValidPositions[binIndex] = targetPosition;
-                targetZone = this.homeDropZones[i];
-
-                // Update zone mappings
-                this.activeBinZones.set(bin, this.homeDropZones[i]);
-                this.zoneOccupants.set(this.homeDropZones[i], bin);
-
-                // Update bin texture based on current state
-                this.updateBinTexture(bin);
-
-                // Regular animation for home zone (no tipping)
-                this.tweens.add({
-                  targets: bin,
-                  scale: this.binScale * 1.3,
-                  duration: 200,
-                  yoyo: true,
-                  onComplete: () => {
-                    this.tweens.add({
-                      targets: bin,
-                      x: targetPosition.x,
-                      y: targetPosition.y,
-                      scale: this.binScale,
-                      duration: 300,
-                      ease: 'Back.out',
-                    });
-                  },
-                });
-                break;
-              }
-            }
-          }
-
-          if (!droppedInZone) {
-            // Not dropped in any zone, return to last valid position
-            this.tweens.add({
-              targets: bin,
-              x: this.lastValidPositions[binIndex].x,
-              y: this.lastValidPositions[binIndex].y,
-              scale: this.binScale,
-              duration: 400,
-              ease: 'Back.out',
-              onComplete: () => {
-                // Find which zone corresponds to this position and update mappings
-                for (const zone of [...this.homeDropZones, this.truckDropZone]) {
-                  if (
-                    Math.abs(zone.x - this.lastValidPositions[binIndex].x) < 10 &&
-                    Math.abs(zone.y - this.lastValidPositions[binIndex].y) < 10
-                  ) {
-                    // Update zone mappings
-                    this.activeBinZones.set(bin, zone);
-                    this.zoneOccupants.set(zone, bin);
-                    break;
-                  }
-                }
-                // Redraw zones
-                this.drawDropZones();
-              },
-            });
-          }
-
-          // Reset drop zone colors
-          this.drawDropZones();
-        }
-        // If it's a garbage piece
-        else if (this.garbagePieces.includes(sprite)) {
-          // Reset scale
-          this.tweens.add({
-            targets: sprite,
-            scale: this.garbageAnimParams.scale,
-            duration: 200,
-            ease: 'Power1',
-          });
-
-          // Check for collision with bins using cursor position
-          this.checkGarbageCollisionWithBins(sprite, pointer.x, pointer.y);
+        // Handle different draggable object types
+        if (gameObject instanceof GarbageBin) {
+          this.handleBinDragEnd(gameObject, pointer);
+        } else if (gameObject instanceof GarbagePiece) {
+          this.handleGarbageDragEnd(gameObject, pointer);
         }
       }
     );
   }
 
-  private checkDropZoneHover(pointerX: number, pointerY: number, bin: Phaser.GameObjects.Sprite) {
-    // Check truck zone
-    const truckZoneBody = this.truckDropZone.body as Phaser.Physics.Arcade.Body;
-    const truckZoneRect = new Phaser.Geom.Rectangle(
-      truckZoneBody.x,
-      truckZoneBody.y,
-      truckZoneBody.width,
-      truckZoneBody.height
-    );
-
-    const highlightTruck =
-      Phaser.Geom.Rectangle.Contains(truckZoneRect, pointerX, pointerY) &&
-      !this.zoneOccupants.get(this.truckDropZone);
-
-    // Check all home zones
-    const highlightHomeZones = this.homeDropZones.map(zone => {
-      const body = zone.body as Phaser.Physics.Arcade.Body;
-      const rect = new Phaser.Geom.Rectangle(body.x, body.y, body.width, body.height);
-      // Only highlight if zone is empty (or occupied by the current bin)
-      return (
-        Phaser.Geom.Rectangle.Contains(rect, pointerX, pointerY) &&
-        (!this.zoneOccupants.get(zone) || this.zoneOccupants.get(zone) === bin)
-      );
-    });
-
-    // Redraw drop zones with highlights
-    this.drawDropZones(highlightTruck, highlightHomeZones);
+  private handleBinDragStart(bin: GarbageBin): void {
+    bin.handleDragStart();
   }
 
-  private drawDropZones(highlightTruck: boolean = false, highlightHomeZones: boolean[] = []) {
-    this.dropZoneGraphics.clear();
-
-    // Draw truck zone only if it's empty
-    if (!this.zoneOccupants.get(this.truckDropZone)) {
-      const truckZoneBody = this.truckDropZone.body as Phaser.Physics.Arcade.Body;
-      const truckAlpha = highlightTruck ? 0.4 : 0.2;
-
-      // Fill
-      this.dropZoneGraphics.fillStyle(0x4caf50, truckAlpha);
-      this.dropZoneGraphics.fillRect(
-        truckZoneBody.x,
-        truckZoneBody.y,
-        truckZoneBody.width,
-        truckZoneBody.height
-      );
-
-      // Border
-      this.dropZoneGraphics.lineStyle(2, 0x4caf50, 1);
-      this.dropZoneGraphics.strokeRect(
-        truckZoneBody.x,
-        truckZoneBody.y,
-        truckZoneBody.width,
-        truckZoneBody.height
-      );
-    }
-
-    // Draw each home zone only if it's empty
-    this.homeDropZones.forEach((zone, index) => {
-      if (!this.zoneOccupants.get(zone)) {
-        const homeZoneBody = zone.body as Phaser.Physics.Arcade.Body;
-        const homeAlpha = highlightHomeZones[index] ? 0.4 : 0.2;
-
-        // Fill
-        this.dropZoneGraphics.fillStyle(0x4caf50, homeAlpha);
-        this.dropZoneGraphics.fillRect(
-          homeZoneBody.x,
-          homeZoneBody.y,
-          homeZoneBody.width,
-          homeZoneBody.height
-        );
-
-        // Border
-        this.dropZoneGraphics.lineStyle(2, 0x4caf50, 1);
-        this.dropZoneGraphics.strokeRect(
-          homeZoneBody.x,
-          homeZoneBody.y,
-          homeZoneBody.width,
-          homeZoneBody.height
-        );
-      }
-    });
+  private handleGarbageDragStart(garbage: GarbagePiece): void {
+    garbage.handleDragStart();
   }
 
-  /**
-   * Plays the bin tipping animation when bin is placed at the truck
-   * The bin rotates 120 degrees CCW around its bottom left corner
-   */
-  private playBinTippingAnimation(bin: Phaser.GameObjects.Sprite) {
-    // Disable interaction during animation
-    this.isAnimating = true;
-    this.currentAnimatingBin = bin;
-    bin.disableInteractive();
-
-    // Store original position
-    const originalX = bin.x;
-    const originalY = bin.y;
-
-    // Remove bin from scene temporarily
-    bin.setVisible(false);
-
-    // Create container at the bin's position
-    this.animContainer = this.add.container(originalX, originalY);
-
-    // Create a clone of the bin for animation
-    const animBin = this.add.sprite(0, 0, bin.texture.key);
-    animBin.setScale(this.binScale);
-
-    // Offset the bin within the container to rotate around bottom-left corner
-    const width = animBin.width * this.binScale;
-    const height = animBin.height * this.binScale;
-    animBin.x = width * this.tippingAnimParams.pivotOrigin.x;
-    animBin.y = -height * (1 - this.tippingAnimParams.pivotOrigin.y);
-
-    // Add the bin to the container
-    this.animContainer.add(animBin);
-
-    // Create tipping animation sequence for the container
-    this.tweens.add({
-      targets: this.animContainer,
-      rotation: Phaser.Math.DegToRad(this.tippingAnimParams.rotationAngle),
-      duration: this.tippingAnimParams.rotationDuration,
-      ease: this.tippingAnimParams.easeFunction,
-      onComplete: () => {
-        // Mark bin as empty exactly when it's tipped over
-        this.emptyBins.add(bin);
-
-        // Update the sprite (will be applied when bin becomes visible again)
-        const binType = this.binTypes.get(bin) || 'generic';
-        if (binType === 'plastic') {
-          bin.setTexture('bin-plastic-empty');
-          // Also update the animation sprite to show empty bin
-          animBin.setTexture('bin-plastic-empty');
-        } else if (binType === 'food') {
-          bin.setTexture('bin-food-empty');
-          // Also update the animation sprite to show empty bin
-          animBin.setTexture('bin-food-empty');
-        } else {
-          const binIndex = this.bins.indexOf(bin);
-          const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
-          bin.setTexture(binColors[binIndex]);
-          // Also update the animation sprite to show empty bin
-          animBin.setTexture(binColors[binIndex]);
-        }
-
-        // Hold for specified duration
-        this.time.delayedCall(this.tippingAnimParams.holdDuration, () => {
-          // Return to original rotation
-          this.tweens.add({
-            targets: this.animContainer,
-            rotation: 0,
-            duration: this.tippingAnimParams.returnDuration,
-            ease: this.tippingAnimParams.easeFunction,
-            onComplete: () => {
-              // Restore original bin
-              bin.setVisible(true);
-
-              // Remove animation container
-              if (this.animContainer) {
-                this.animContainer.destroy();
-                this.animContainer = null;
-              }
-
-              // Re-enable interaction
-              bin.setInteractive();
-              this.input.setDraggable(bin);
-              this.isAnimating = false;
-              this.currentAnimatingBin = null;
-            },
-          });
-        });
-      },
-    });
+  private handleBinDrag(bin: GarbageBin, pointer: Phaser.Input.Pointer): void {
+    // Check if hovering over any drop zone
+    this.checkDropZoneHover(pointer.x, pointer.y);
   }
 
-  /**
-   * Updates the bin texture based on whether it's empty or full
-   */
-  private updateBinTexture(bin: Phaser.GameObjects.Sprite) {
-    const binType = this.binTypes.get(bin) || 'generic';
-
-    if (this.emptyBins.has(bin)) {
-      // Use empty bin texture based on type
-      if (binType === 'plastic') {
-        bin.setTexture('bin-plastic-empty');
-      } else if (binType === 'food') {
-        bin.setTexture('bin-food-empty');
-      } else {
-        const binIndex = this.bins.indexOf(bin);
-        const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
-        bin.setTexture(binColors[binIndex]);
-      }
-    } else {
-      // Use full bin texture based on type
-      if (binType === 'plastic') {
-        bin.setTexture('bin-plastic-full');
-      } else if (binType === 'food') {
-        bin.setTexture('bin-food-full');
-      } else {
-        const binIndex = this.bins.indexOf(bin);
-        const binColorsFull = ['bin-green-full', 'bin-blue-full', 'bin-yellow-full'];
-        bin.setTexture(binColorsFull[binIndex]);
-      }
-    }
+  private handleGarbageDrag(garbage: GarbagePiece, pointer: Phaser.Input.Pointer): void {
+    // Check if hovering over any bin
+    garbage.highlightAcceptingBins(this.bins, pointer.x, pointer.y, this.currentAnimatingBin);
   }
 
-  /**
-   * Spawns a random piece of garbage at the top of the screen
-   */
-  private spawnRandomGarbage() {
-    // Skip spawning if we're currently dragging something or at max capacity
-    if (this.isDragging || this.garbagePieces.length >= this.maxGarbagePieces) {
-      return;
-    }
+  private handleBinDragEnd(bin: GarbageBin, pointer: Phaser.Input.Pointer): void {
+    let droppedInZone = false;
+    let targetZone: DropZone | null = null;
 
-    // Choose a random garbage type
-    const randomIndex = Math.floor(Math.random() * this.garbageTypes.length);
-    const garbageType = this.garbageTypes[randomIndex];
+    // Check if dropped in truck zone
+    if (
+      this.truckDropZone.containsPoint(pointer.x, pointer.y) &&
+      !this.truckDropZone.isOccupied()
+    ) {
+      droppedInZone = true;
+      targetZone = this.truckDropZone;
 
-    // Find the first available position
-    const finalX = this.findNextAvailablePosition();
-    if (finalX === null) return; // No available spots
+      // Update the bin's position and zone
+      bin.setLastValidPosition(targetZone.x, targetZone.y);
 
-    // Create the garbage sprite at position above the screen
-    const garbage = this.add.sprite(finalX, -50, garbageType);
-    garbage.setScale(this.garbageAnimParams.scale);
+      // Set animating flag
+      this.isAnimating = true;
+      this.currentAnimatingBin = bin;
 
-    // Make garbage draggable
-    garbage.setInteractive();
-    this.input.setDraggable(garbage);
-
-    // Enable physics for collision detection
-    this.physics.world.enable(garbage);
-
-    // Add to the tracked pieces array
-    this.garbagePieces.push(garbage);
-
-    // Animate the garbage entry from top
-    this.tweens.add({
-      targets: garbage,
-      y: this.garbageAnimParams.yPosition,
-      duration: this.garbageAnimParams.entryDuration,
-      ease: 'Back.out',
-    });
-  }
-
-  /**
-   * Finds the next available position for a new garbage piece
-   * Returns null if no positions are available
-   */
-  private findNextAvailablePosition(): number | null {
-    // Define the positions where garbage can be placed
-    const baseX = this.cameras.main.width * 0.2;
-    const totalPositions = this.maxGarbagePieces;
-
-    // Create an array of all possible positions
-    const allPositions = [];
-    for (let i = 0; i < totalPositions; i++) {
-      allPositions.push(baseX + i * this.garbageAnimParams.spacing);
-    }
-
-    // Check which positions are already occupied
-    const occupiedPositions = this.garbagePieces.map(garbage => {
-      return Math.round(garbage.x); // Round to handle slight positioning variations
-    });
-
-    // Find the first position that's not occupied
-    for (const position of allPositions) {
-      if (!occupiedPositions.some(occupied => Math.abs(occupied - position) < 10)) {
-        return position;
-      }
-    }
-
-    // If all positions are occupied
-    return null;
-  }
-
-  /**
-   * Checks if a garbage piece collides with any bin that is in a home drop zone
-   */
-  private checkGarbageCollisionWithBins(
-    garbage: Phaser.GameObjects.Sprite,
-    pointerX: number,
-    pointerY: number
-  ) {
-    let collidedWithValidBin = false;
-    const startPosition = this.garbageStartPositions.get(garbage);
-
-    // Check each bin
-    for (const bin of this.bins) {
-      const binBody = bin.body as Phaser.Physics.Arcade.Body;
-      const binRect = new Phaser.Geom.Rectangle(
-        binBody.x,
-        binBody.y,
-        binBody.width,
-        binBody.height
-      );
-
-      // Check if pointer position overlaps with bin
-      if (Phaser.Geom.Rectangle.Contains(binRect, pointerX, pointerY)) {
-        // Get the zone the bin is in (if any)
-        const binZone = this.activeBinZones.get(bin);
-
-        // Only allow garbage to be placed in bins that are in home zones (not truck zone)
-        if (binZone && this.homeDropZones.includes(binZone)) {
-          // Check if this bin type accepts this garbage type
-          const binType = this.binTypes.get(bin) || 'generic';
-          const garbageType = garbage.texture.key;
-          const acceptedGarbageTypes = this.binAcceptedGarbage.get(binType) || [];
-
-          if (acceptedGarbageTypes.includes(garbageType)) {
-            collidedWithValidBin = true;
-
-            // Make the bin full if it was empty
-            if (this.emptyBins.has(bin)) {
-              this.emptyBins.delete(bin);
-              this.updateBinTexture(bin);
-            }
-
-            // Play a quick scale animation as visual feedback
-            this.tweens.add({
-              targets: bin,
-              scale: this.binScale * 1.1,
-              duration: 100,
-              yoyo: true,
-              ease: 'Power1',
-            });
-
-            // Remove garbage from display and array
-            const garbageIndex = this.garbagePieces.indexOf(garbage);
-            if (garbageIndex !== -1) {
-              this.garbagePieces.splice(garbageIndex, 1);
-            }
-
-            // Clean up the stored position
-            this.garbageStartPositions.delete(garbage);
-
-            // Fade out and destroy the garbage
-            this.tweens.add({
-              targets: garbage,
-              alpha: 0,
-              scale: 0,
-              duration: 300,
-              ease: 'Power2',
-              onComplete: () => {
-                garbage.destroy();
-              },
-            });
-
-            break;
-          }
+      // Double check that the bin's previous zone (if any) is properly cleared
+      for (const zone of [this.truckDropZone, ...this.homeDropZones]) {
+        if (zone !== targetZone && zone.getOccupant() === bin) {
+          console.log('Clearing previous zone reference to bin');
+          zone.setOccupant(null);
         }
       }
-    }
 
-    // If not collided with any valid bin, return to original position
-    if (!collidedWithValidBin && startPosition) {
-      this.tweens.add({
-        targets: garbage,
-        x: startPosition.x,
-        y: startPosition.y,
-        scale: this.garbageAnimParams.scale,
-        duration: 400,
-        ease: 'Back.out',
+      bin.animateToZone(targetZone, true).then(() => {
+        this.isAnimating = false;
+        this.currentAnimatingBin = null;
       });
-    }
-  }
+    } else {
+      // Check if dropped in any home zone
+      for (const homeZone of this.homeDropZones) {
+        if (homeZone.containsPoint(pointer.x, pointer.y) && !homeZone.isOccupied()) {
+          droppedInZone = true;
+          targetZone = homeZone;
 
-  /**
-   * Checks if a garbage piece is hovering over bins and shows visual feedback
-   */
-  private checkGarbageHoverOverBins(
-    pointerX: number,
-    pointerY: number,
-    garbage: Phaser.GameObjects.Sprite
-  ) {
-    // Reset all bins to original scale first
-    this.bins.forEach(bin => {
-      // Skip the bin if it's currently being animated
-      if (bin === this.currentAnimatingBin) return;
-      bin.setScale(this.binScale);
-    });
+          // Update the bin's position and zone
+          bin.setLastValidPosition(targetZone.x, targetZone.y);
 
-    // Get the garbage type
-    const garbageType = garbage.texture.key;
+          // Set animating flag
+          this.isAnimating = true;
+          this.currentAnimatingBin = bin;
 
-    // Check each bin
-    for (const bin of this.bins) {
-      // Skip the bin if it's currently being animated
-      if (bin === this.currentAnimatingBin) continue;
-
-      const binBody = bin.body as Phaser.Physics.Arcade.Body;
-      const binRect = new Phaser.Geom.Rectangle(
-        binBody.x,
-        binBody.y,
-        binBody.width,
-        binBody.height
-      );
-
-      // Check if pointer position overlaps with bin
-      if (Phaser.Geom.Rectangle.Contains(binRect, pointerX, pointerY)) {
-        // Get the zone the bin is in (if any)
-        const binZone = this.activeBinZones.get(bin);
-
-        // Only highlight bins that are in home zones (not truck zone)
-        if (binZone && this.homeDropZones.includes(binZone)) {
-          // Check if this bin type accepts this garbage type
-          const binType = this.binTypes.get(bin) || 'generic';
-          const acceptedGarbageTypes = this.binAcceptedGarbage.get(binType) || [];
-
-          // Only highlight the bin if it accepts this type of garbage
-          if (acceptedGarbageTypes.includes(garbageType)) {
-            // Highlight bin by increasing its scale
-            bin.setScale(this.binScale * 1.1);
+          // Double check that the bin's previous zone (if any) is properly cleared
+          for (const zone of [this.truckDropZone, ...this.homeDropZones]) {
+            if (zone !== targetZone && zone.getOccupant() === bin) {
+              console.log('Clearing previous zone reference to bin');
+              zone.setOccupant(null);
+            }
           }
+
+          bin.animateToZone(targetZone, false).then(() => {
+            this.isAnimating = false;
+            this.currentAnimatingBin = null;
+          });
           break;
         }
       }
     }
+
+    // If not dropped in any valid zone, return to last valid position
+    if (!droppedInZone) {
+      // Set animating flag
+      this.isAnimating = true;
+      this.currentAnimatingBin = bin;
+
+      bin.resetPosition().then(() => {
+        // Find which zone corresponds to this position
+        let matchedZone: DropZone | null = null;
+        const lastPosition = bin.getLastValidPosition();
+
+        // Check all zones
+        for (const zone of [this.truckDropZone, ...this.homeDropZones]) {
+          if (Math.abs(zone.x - lastPosition.x) < 10 && Math.abs(zone.y - lastPosition.y) < 10) {
+            matchedZone = zone;
+            break;
+          }
+        }
+
+        // If found matching zone, update relationships
+        if (matchedZone) {
+          matchedZone.setOccupant(bin);
+        }
+
+        this.isAnimating = false;
+        this.currentAnimatingBin = null;
+
+        // Redraw zones
+        this.redrawAllZones();
+      });
+    }
+
+    // Reset zone highlights
+    this.redrawAllZones();
+
+    // Run cleanup to fix any inconsistencies after a 500ms delay
+    this.time.delayedCall(500, () => {
+      this.cleanupZoneOccupancy();
+    });
+  }
+
+  private handleGarbageDragEnd(garbage: GarbagePiece, pointer: Phaser.Input.Pointer): void {
+    garbage.handleDragEnd().then(() => {
+      // Check for collision with bins
+      if (!this.checkGarbageCollisionWithBins(garbage, pointer.x, pointer.y)) {
+        // If no collision, return to original position
+        garbage.resetToOriginalPosition();
+      }
+    });
+  }
+
+  private checkDropZoneHover(pointerX: number, pointerY: number): void {
+    // Reset all zone highlights
+    this.redrawAllZones();
+
+    // Check truck zone
+    if (this.truckDropZone.containsPoint(pointerX, pointerY) && !this.truckDropZone.isOccupied()) {
+      this.truckDropZone.draw(true); // Highlight
+    }
+
+    // Check home zones
+    for (const homeZone of this.homeDropZones) {
+      if (homeZone.containsPoint(pointerX, pointerY) && !homeZone.isOccupied()) {
+        homeZone.draw(true); // Highlight
+      }
+    }
+  }
+
+  private checkGarbageCollisionWithBins(
+    garbage: GarbagePiece,
+    pointerX: number,
+    pointerY: number
+  ): boolean {
+    return garbage.checkBinCollision(
+      this.bins,
+      pointerX,
+      pointerY,
+      this.currentAnimatingBin,
+      () => {
+        this.garbageManager.removeGarbagePiece(garbage);
+      }
+    );
+  }
+
+  private redrawAllZones(): void {
+    // Clear all drawings first
+    this.dropZoneGraphics.clear();
+
+    // Debug logging
+    console.log('Truck zone occupied:', this.truckDropZone.isOccupied());
+    if (this.truckDropZone.getOccupant()) {
+      console.log('Truck occupant:', this.truckDropZone.getOccupant());
+    }
+
+    this.homeDropZones.forEach((zone, i) => {
+      console.log(`Home zone ${i} occupied:`, zone.isOccupied());
+      if (zone.getOccupant()) {
+        console.log(`Home zone ${i} occupant:`, zone.getOccupant());
+      }
+    });
+
+    // Redraw all zones with their current state
+    this.truckDropZone.draw();
+    for (const homeZone of this.homeDropZones) {
+      homeZone.draw();
+    }
+  }
+
+  private cleanupZoneOccupancy(): void {
+    console.log('Running zone occupancy cleanup');
+
+    // Check bin-zone consistency first
+    for (const bin of this.bins) {
+      bin.checkZoneConsistency();
+    }
+
+    // Step 1: Check which bins are in which zones
+    const zoneOccupants = new Map<DropZone, GarbageBin | null>();
+
+    // Start with all zones being empty
+    zoneOccupants.set(this.truckDropZone, null);
+    for (const homeZone of this.homeDropZones) {
+      zoneOccupants.set(homeZone, null);
+    }
+
+    // Check which bins are in which zones
+    for (const bin of this.bins) {
+      const zone = bin.getCurrentZone();
+      if (zone) {
+        zoneOccupants.set(zone, bin);
+      }
+    }
+
+    // Step 2: Update zone occupancy
+    for (const [zone, bin] of zoneOccupants.entries()) {
+      // If zone's current occupant doesn't match our map, update it
+      if (zone.getOccupant() !== bin) {
+        console.log('Fixing zone occupant mismatch', zone, bin);
+        zone.setOccupant(bin);
+      }
+    }
+
+    // Step 3: Make sure bins have correct zone references
+    for (const bin of this.bins) {
+      const zone = bin.getCurrentZone();
+      if (zone && zone.getOccupant() !== bin) {
+        console.log('Fixing bin zone reference', bin, zone);
+        bin.setCurrentZone(null);
+      }
+    }
+
+    // Finally, redraw all zones
+    this.redrawAllZones();
   }
 }
