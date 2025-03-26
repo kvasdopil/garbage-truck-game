@@ -45,3 +45,19 @@ Thumbs.db
 
 # ESLint
 .eslintcache 
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+terraform/.terraformrc
+terraform/terraform.rc
+terraform/crash.log
+terraform/crash.*.log
+terraform/.terraform.lock.hcl
+terraform/override.tf
+terraform/override.tf.json
+terraform/*_override.tf
+terraform/*_override.tf.json
+terraform/.terraform.d/ 
