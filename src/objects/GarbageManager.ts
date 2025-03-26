@@ -71,6 +71,11 @@ export class GarbageManager {
       GarbageType.PLASTIC2,
       GarbageType.PLASTIC3,
       GarbageType.PLASTIC4,
+      // Paper garbage types
+      GarbageType.PAPER1,
+      GarbageType.PAPER2,
+      GarbageType.PAPER3,
+      GarbageType.PAPER4,
     ];
 
     // Choose a random garbage type

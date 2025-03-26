@@ -11,11 +11,21 @@ export enum GarbageType {
   PLASTIC2 = 'plastic2',
   PLASTIC3 = 'plastic3',
   PLASTIC4 = 'plastic4',
+  PAPER1 = 'paper1',
+  PAPER2 = 'paper2',
+  PAPER3 = 'paper3',
+  PAPER4 = 'paper4',
 }
 
 // Map of which bin types accept which garbage types
 export const GARBAGE_ACCEPTANCE_MAP: Record<BinType, GarbageType[]> = {
-  [BinType.GENERIC]: [GarbageType.CAN],
+  [BinType.GENERIC]: [
+    GarbageType.CAN,
+    GarbageType.PAPER1,
+    GarbageType.PAPER2,
+    GarbageType.PAPER3,
+    GarbageType.PAPER4,
+  ],
   [BinType.PLASTIC]: [
     GarbageType.PLASTIC1,
     GarbageType.PLASTIC2,
@@ -28,7 +38,7 @@ export const GARBAGE_ACCEPTANCE_MAP: Record<BinType, GarbageType[]> = {
 export class GarbagePiece extends Phaser.GameObjects.Sprite {
   private garbageType: GarbageType;
   private originalPosition: { x: number; y: number };
-  private pieceScale: number = 0.1;
+  private pieceScale: number = 0.25;
 
   // Animation parameters
   private animParams = {
@@ -83,6 +93,28 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
           frame = 2;
           break;
         case GarbageType.PLASTIC4:
+          frame = 3;
+          break;
+      }
+    } else if (
+      type === GarbageType.PAPER1 ||
+      type === GarbageType.PAPER2 ||
+      type === GarbageType.PAPER3 ||
+      type === GarbageType.PAPER4
+    ) {
+      // Map paper types to frame indices (0-based)
+      texture = 'garbage-paper';
+      switch (type) {
+        case GarbageType.PAPER1:
+          frame = 0;
+          break;
+        case GarbageType.PAPER2:
+          frame = 1;
+          break;
+        case GarbageType.PAPER3:
+          frame = 2;
+          break;
+        case GarbageType.PAPER4:
           frame = 3;
           break;
       }
