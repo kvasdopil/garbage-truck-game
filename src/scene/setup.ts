@@ -29,15 +29,15 @@ export class SceneSetup {
 
     // Create renderer
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setSize(window.innerWidth * 0.8, window.innerHeight * 0.7);
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
 
     // Handle window resize
     window.addEventListener('resize', this.handleResize);
   }
 
   private handleResize = () => {
-    const width = window.innerWidth * 0.8;
-    const height = window.innerHeight * 0.7;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
     const aspectRatio = width / height;
     const frustumSize = 5;
 

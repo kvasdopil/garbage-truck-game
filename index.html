@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -10,8 +10,13 @@
         padding: 0;
         overflow: hidden;
         background: white;
+        width: 100vw;
+        height: 100vh;
       }
       #game-container {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100vw;
         height: 100vh;
         display: flex;
@@ -19,9 +24,17 @@
         align-items: center;
       }
       h1 {
-        margin: 20px 0;
+        position: absolute;
+        top: 20px;
+        margin: 0;
         color: #333;
         font-family: Arial, sans-serif;
+        z-index: 1;
+      }
+      #game-canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
       }
     </style>
   </head>
@@ -32,4 +45,4 @@
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
-</html> 
+</html>
