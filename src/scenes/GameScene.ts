@@ -14,6 +14,7 @@ import Phaser from 'phaser';
  - a garbage piece appears occasionally at the top of the screen with a slide and bounce animation
  - only a certain number of garbage pieces can be visible at a time, when there's too many, they stop spawning
  - garbage pieces can be dragged to the bins, when the bin is parked in the home zone
+ - when anything is dragged, spawning of garbage pieces is paused
 */
 
 export class GameScene extends Phaser.Scene {
@@ -22,6 +23,7 @@ export class GameScene extends Phaser.Scene {
   private truckDropZone!: Phaser.GameObjects.Zone;
   private homeDropZones: Phaser.GameObjects.Zone[] = [];
   private dropZoneGraphics!: Phaser.GameObjects.Graphics;
+  private baseScale: number = 0.27; // Base scale for reference
   private originalBinScale: number = 0.27; // Store original bin scale for reference
   private lastValidPositions: { x: number; y: number }[] = []; // Track each bin's last valid position
   private activeBinZones: Map<Phaser.GameObjects.Sprite, Phaser.GameObjects.Zone | null> =
@@ -31,9 +33,19 @@ export class GameScene extends Phaser.Scene {
   private emptyBins: Set<Phaser.GameObjects.Sprite> = new Set(); // Track which bins are empty
   private animContainer: Phaser.GameObjects.Container | null = null; // Container for animation
   private currentAnimatingBin: Phaser.GameObjects.Sprite | null = null; // Track which bin is animating
+  private isDragging: boolean = false; // Track if any object is being dragged
+
+  // Responsive sizing factors
+  private static BASE_WIDTH: number = 1024; // Reference width for scaling calculations
+  private static BASE_HEIGHT: number = 768; // Reference height for scaling calculations
 
   // Garbage system
-  private garbageTypes: string[] = ['garbage-can', 'garbage-apple', 'garbage-bottle']; // Types of garbage
+  private garbageTypes: string[] = [
+    'garbage-can',
+    'garbage-apple',
+    'garbage-bottle',
+    'garbage-bag',
+  ]; // Types of garbage
   private garbagePieces: Phaser.GameObjects.Sprite[] = []; // Active garbage pieces
   private garbageTimer!: Phaser.Time.TimerEvent; // Timer for spawning garbage
   private maxGarbagePieces: number = 3; // Maximum number of garbage pieces visible
@@ -75,16 +87,20 @@ export class GameScene extends Phaser.Scene {
     this.load.image('garbage-can', 'garbage-can.png'); // Garbage can image
     this.load.image('garbage-apple', 'garbage-apple.png'); // Apple garbage image
     this.load.image('garbage-bottle', 'garbage-bottle.png'); // Bottle garbage image
+    this.load.image('garbage-bag', 'garbage-bag.png'); // Bag garbage image
   }
 
   create() {
+    // Calculate the scale factor based on screen size
+    this.calculateScalingFactors();
+
     // Create the truck sprite
     this.truck = this.add.sprite(
       this.cameras.main.width * 0.25, // Left third of screen
       this.cameras.main.height / 2,
       'truck'
     );
-    this.truck.setScale(0.5); // Adjust scale as needed
+    this.truck.setScale(0.5 * this.getScaleFactor()); // Adjust scale as needed
 
     // Create drop zone graphics
     this.dropZoneGraphics = this.add.graphics();
@@ -125,6 +141,9 @@ export class GameScene extends Phaser.Scene {
     // Create the 3 bin sprites at each home position
     const binColors = ['bin-green', 'bin-blue', 'bin-yellow'];
     const binColorsFull = ['bin-green-full', 'bin-blue-full', 'bin-yellow-full'];
+
+    // Calculate the bin scale based on screen size
+    this.originalBinScale = this.baseScale * this.getScaleFactor();
 
     for (let i = 0; i < 3; i++) {
       const bin = this.add.sprite(
@@ -177,6 +196,39 @@ export class GameScene extends Phaser.Scene {
     this.spawnRandomGarbage();
   }
 
+  /**
+   * Calculate responsive scaling factors based on screen dimensions
+   */
+  private calculateScalingFactors() {
+    // Update garbage animation parameters based on screen size
+    const scaleFactor = this.getScaleFactor();
+    this.garbageAnimParams.scale = 0.1 * scaleFactor;
+    this.garbageAnimParams.spacing = 100 * scaleFactor;
+    this.garbageAnimParams.bounceHeight = 20 * scaleFactor;
+    this.garbageAnimParams.yPosition = 60 * scaleFactor;
+  }
+
+  /**
+   * Returns a scale factor based on screen dimensions to make the game responsive
+   */
+  private getScaleFactor(): number {
+    // Get current screen dimensions
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Calculate scale factors for width and height
+    const widthFactor = width / GameScene.BASE_WIDTH;
+    const heightFactor = height / GameScene.BASE_HEIGHT;
+
+    // Use the smaller factor to ensure content fits on screen
+    const factor = Math.min(widthFactor, heightFactor);
+
+    // Clamp to a reasonable range to prevent elements from being too small or too large
+    const minFactor = 0.5;
+    const maxFactor = 1.5;
+    return Math.max(minFactor, Math.min(factor, maxFactor));
+  }
+
   private setupDragEvents() {
     // Drag start event
     this.input.on(
@@ -184,6 +236,9 @@ export class GameScene extends Phaser.Scene {
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Sprite) => {
         // Don't allow dragging if bin is animating
         if (this.isAnimating) return;
+
+        // Set dragging state to true
+        this.isDragging = true;
 
         this.children.bringToTop(gameObject);
 
@@ -242,6 +297,10 @@ export class GameScene extends Phaser.Scene {
           if (this.bins.includes(gameObject)) {
             this.checkDropZoneHover(body, gameObject);
           }
+          // Check if garbage is over bins (only for garbage)
+          else if (this.garbagePieces.includes(gameObject)) {
+            this.checkGarbageHoverOverBins(body, gameObject);
+          }
         }
       }
     );
@@ -250,6 +309,9 @@ export class GameScene extends Phaser.Scene {
     this.input.on(
       'dragend',
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+        // Reset dragging state
+        this.isDragging = false;
+
         const sprite = gameObject as Phaser.GameObjects.Sprite;
 
         // If it's a bin
@@ -493,7 +555,15 @@ export class GameScene extends Phaser.Scene {
     // Update camera
     this.cameras.main.setSize(gameSize.width, gameSize.height);
 
-    // Update game object positions
+    // Recalculate scaling factors
+    this.calculateScalingFactors();
+    const scaleFactor = this.getScaleFactor();
+
+    // Update the original bin scale
+    this.originalBinScale = this.baseScale * scaleFactor;
+
+    // Update truck scale and position
+    this.truck.setScale(0.5 * scaleFactor);
     this.truck.setPosition(gameSize.width * 0.25, gameSize.height / 2);
 
     // Calculate zone dimensions
@@ -523,8 +593,10 @@ export class GameScene extends Phaser.Scene {
       (zone.body as Phaser.Physics.Arcade.Body).updateFromGameObject();
     });
 
-    // Update bins' positions
+    // Update bins' positions and scale
     this.bins.forEach((bin, index) => {
+      bin.setScale(this.originalBinScale);
+
       const currentZone = this.activeBinZones.get(bin);
       if (currentZone) {
         // If bin is in a zone, update its position to the zone's position
@@ -533,7 +605,10 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // Update garbage pieces positions
+    // Update garbage pieces positions and scale
+    this.garbagePieces.forEach(garbage => {
+      garbage.setScale(this.garbageAnimParams.scale);
+    });
     this.updateGarbagePositions();
 
     // Redraw drop zones
@@ -642,8 +717,8 @@ export class GameScene extends Phaser.Scene {
    * Spawns a random piece of garbage at the top of the screen
    */
   private spawnRandomGarbage() {
-    // Only spawn if we don't already have the maximum number of garbage pieces
-    if (this.garbagePieces.length >= this.maxGarbagePieces) {
+    // Skip spawning if we're currently dragging something or at max capacity
+    if (this.isDragging || this.garbagePieces.length >= this.maxGarbagePieces) {
       return;
     }
 
@@ -651,13 +726,12 @@ export class GameScene extends Phaser.Scene {
     const randomIndex = Math.floor(Math.random() * this.garbageTypes.length);
     const garbageType = this.garbageTypes[randomIndex];
 
-    // Calculate position
-    this.updateGarbagePositions();
-    const startX = -50; // Start off-screen to the left
-    const finalX = this.calculateGarbageXPosition(this.garbagePieces.length);
+    // Find the first available position
+    const finalX = this.findNextAvailablePosition();
+    if (finalX === null) return; // No available spots
 
-    // Create the garbage sprite
-    const garbage = this.add.sprite(startX, this.garbageAnimParams.yPosition, garbageType);
+    // Create the garbage sprite at position above the screen
+    const garbage = this.add.sprite(finalX, -50, garbageType);
     garbage.setScale(this.garbageAnimParams.scale);
 
     // Make garbage draggable
@@ -670,53 +744,71 @@ export class GameScene extends Phaser.Scene {
     // Add to the tracked pieces array
     this.garbagePieces.push(garbage);
 
-    // Animate the garbage entry
+    // Animate the garbage entry from top
     this.tweens.add({
       targets: garbage,
-      x: finalX,
+      y: this.garbageAnimParams.yPosition,
       duration: this.garbageAnimParams.entryDuration,
       ease: 'Back.out',
-      onComplete: () => {
-        // Add a bounce effect
-        this.tweens.add({
-          targets: garbage,
-          y: this.garbageAnimParams.yPosition + this.garbageAnimParams.bounceHeight,
-          duration: this.garbageAnimParams.bounceDuration,
-          yoyo: true,
-          ease: 'Sine.out',
-        });
-      },
     });
   }
 
   /**
+   * Finds the next available position for a new garbage piece
+   * Returns null if no positions are available
+   */
+  private findNextAvailablePosition(): number | null {
+    // Define the positions where garbage can be placed
+    const baseX = this.cameras.main.width * 0.2;
+    const totalPositions = this.maxGarbagePieces;
+
+    // Create an array of all possible positions
+    const allPositions = [];
+    for (let i = 0; i < totalPositions; i++) {
+      allPositions.push(baseX + i * this.garbageAnimParams.spacing);
+    }
+
+    // Check which positions are already occupied
+    const occupiedPositions = this.garbagePieces.map(garbage => {
+      return Math.round(garbage.x); // Round to handle slight positioning variations
+    });
+
+    // Find the first position that's not occupied
+    for (const position of allPositions) {
+      if (!occupiedPositions.some(occupied => Math.abs(occupied - position) < 10)) {
+        return position;
+      }
+    }
+
+    // If all positions are occupied
+    return null;
+  }
+
+  /**
    * Updates the positions of all garbage pieces
+   * This is only used when the screen resizes, not for normal gameplay
    */
   private updateGarbagePositions() {
+    // We only reposition garbage during screen resizes
+    // Each piece keeps its relative position on screen
     for (let i = 0; i < this.garbagePieces.length; i++) {
       const garbage = this.garbagePieces[i];
-      const finalX = this.calculateGarbageXPosition(i);
-
-      // Only animate if the position is significantly different
-      if (Math.abs(garbage.x - finalX) > 5) {
-        this.tweens.add({
-          targets: garbage,
-          x: finalX,
-          duration: 300,
-          ease: 'Power1',
-        });
-      } else {
-        garbage.x = finalX;
+      // Only update if the screen size changed dramatically
+      if (garbage.y !== this.garbageAnimParams.yPosition && !this.tweens.isTweening(garbage)) {
+        garbage.y = this.garbageAnimParams.yPosition;
       }
     }
   }
 
   /**
    * Calculates the X position for a garbage piece based on its index
+   * This is only used for returning garbage to position after failed placement
    */
   private calculateGarbageXPosition(index: number): number {
-    const startX = this.cameras.main.width * 0.2; // Start position
-    return startX + index * this.garbageAnimParams.spacing;
+    // In the new system, we just return the current X position
+    // since each piece stays where it spawned
+    const garbage = this.garbagePieces[index];
+    return garbage.x;
   }
 
   /**
@@ -735,9 +827,6 @@ export class GameScene extends Phaser.Scene {
 
     // Check each bin
     for (const bin of this.bins) {
-      // Remove restriction that only allows empty bins to accept garbage
-      // if (!this.emptyBins.has(bin)) continue;
-
       const binBody = bin.body as Phaser.Physics.Arcade.Body;
       const binRect = new Phaser.Geom.Rectangle(
         binBody.x,
@@ -795,16 +884,63 @@ export class GameScene extends Phaser.Scene {
 
     // If not collided with any valid bin, return to original position
     if (!collidedWithValidBin) {
-      const garbageIndex = this.garbagePieces.indexOf(garbage);
-      const finalX = this.calculateGarbageXPosition(garbageIndex);
-
       this.tweens.add({
         targets: garbage,
-        x: finalX,
+        x: garbage.x, // Keep the same X position
         y: this.garbageAnimParams.yPosition,
         duration: 400,
         ease: 'Back.out',
       });
+    }
+  }
+
+  /**
+   * Checks if a garbage piece is hovering over bins and shows visual feedback
+   */
+  private checkGarbageHoverOverBins(
+    garbageBody: Phaser.Physics.Arcade.Body,
+    garbage: Phaser.GameObjects.Sprite
+  ) {
+    // Create garbage rectangle for collision detection
+    const garbageRect = new Phaser.Geom.Rectangle(
+      garbageBody.x,
+      garbageBody.y,
+      garbageBody.width,
+      garbageBody.height
+    );
+
+    // Reset all bins to original scale first
+    this.bins.forEach(bin => {
+      // Skip the bin if it's currently being animated
+      if (bin === this.currentAnimatingBin) return;
+      bin.setScale(this.originalBinScale);
+    });
+
+    // Check each bin
+    for (const bin of this.bins) {
+      // Skip the bin if it's currently being animated
+      if (bin === this.currentAnimatingBin) continue;
+
+      const binBody = bin.body as Phaser.Physics.Arcade.Body;
+      const binRect = new Phaser.Geom.Rectangle(
+        binBody.x,
+        binBody.y,
+        binBody.width,
+        binBody.height
+      );
+
+      // Check if garbage overlaps with bin
+      if (Phaser.Geom.Rectangle.Overlaps(garbageRect, binRect)) {
+        // Get the zone the bin is in (if any)
+        const binZone = this.activeBinZones.get(bin);
+
+        // Only highlight bins that are in home zones (not truck zone)
+        if (binZone && this.homeDropZones.includes(binZone)) {
+          // Highlight bin by increasing its scale
+          bin.setScale(this.originalBinScale * 1.1);
+          break;
+        }
+      }
     }
   }
 }
