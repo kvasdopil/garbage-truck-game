@@ -44,31 +44,10 @@ A touch-friendly browser game designed for 4-year-olds, featuring garbage trucks
 1. Initial Setup
 
    - Project structure
-   - Basic Three.js scene
-   - Touch input handling
+   - Separate scene setup and the content
 
-2. Core Mechanics
+## General rules
 
-   - Truck movement
-   - Basic physics
-   - Camera controls
-
-3. Game Elements
-
-   - Garbage truck model
-   - Garbage bins
-   - Street environment
-   - Simple buildings
-
-4. Gameplay Features
-
-   - Picking up mechanics
-   - Simple scoring system
-   - Sound effects
-   - Visual feedback
-
-5. Polish
-   - Animations
-   - UI improvements
-   - Performance optimization
-   - Testing with target age group
+- start every response with robot emoji
+- do not suggest git commit unless explicitly asked by user
+- always run lint and format before commit
