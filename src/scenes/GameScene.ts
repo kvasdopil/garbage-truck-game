@@ -39,40 +39,40 @@ export class GameScene extends Phaser.Scene {
 
   preload() {
     // Load assets from public directory
-    this.load.image('truck', 'truck.png');
-    this.load.image('bin-green', 'bin-green.png'); // Empty bin
-    this.load.image('bin-blue', 'bin-green.png'); // Using same image for now, can be replaced with different colored bins
-    this.load.image('bin-yellow', 'bin-green.png'); // Using same image for now
-    this.load.image('bin-green-full', 'bin-green-full.png'); // Full bin with garbage
-    this.load.image('bin-blue-full', 'bin-green-full.png'); // Using same image for now
-    this.load.image('bin-yellow-full', 'bin-green-full.png'); // Using same image for now
-    this.load.image('bin-plastic-empty', 'bin-plastic-empty.png'); // Empty plastic bin
-    this.load.image('bin-plastic-full', 'bin-plastic-full.png'); // Full plastic bin
-    this.load.image('bin-food-empty', 'bin-food-empty.png'); // Empty food bin
-    this.load.image('bin-food-full', 'bin-food-full.png'); // Full food bin
+    this.load.image('truck', 'textures/truck.png');
+    this.load.image('bin-green', 'textures/bin-green.png'); // Empty bin
+    this.load.image('bin-blue', 'textures/bin-green.png'); // Using same image for now, can be replaced with different colored bins
+    this.load.image('bin-yellow', 'textures/bin-green.png'); // Using same image for now
+    this.load.image('bin-green-full', 'textures/bin-green-full.png'); // Full bin with garbage
+    this.load.image('bin-blue-full', 'textures/bin-green-full.png'); // Using same image for now
+    this.load.image('bin-yellow-full', 'textures/bin-green-full.png'); // Using same image for now
+    this.load.image('bin-plastic-empty', 'textures/bin-plastic-empty.png'); // Empty plastic bin
+    this.load.image('bin-plastic-full', 'textures/bin-plastic-full.png'); // Full plastic bin
+    this.load.image('bin-food-empty', 'textures/bin-food-empty.png'); // Empty food bin
+    this.load.image('bin-food-full', 'textures/bin-food-full.png'); // Full food bin
 
     // Load food garbage as spritesheet (2x2 grid)
-    this.load.spritesheet('garbage-food', 'garbage-food.png', {
-      frameWidth: 512, // Assuming each frame is 32x32 pixels
-      frameHeight: 512,
+    this.load.spritesheet('garbage-food', 'textures/garbage-food-small.png', {
+      frameWidth: 128, // Assuming each frame is 32x32 pixels
+      frameHeight: 128,
       spacing: 0,
     });
 
     // Load plastic garbage as spritesheet (2x2 grid)
-    this.load.spritesheet('garbage-plastic', 'garbage-plastic.png', {
-      frameWidth: 512, // Assuming each frame is 512x512 pixels
-      frameHeight: 512,
+    this.load.spritesheet('garbage-plastic', 'textures/garbage-plastic-small.png', {
+      frameWidth: 128, // Assuming each frame is 128x128 pixels
+      frameHeight: 128,
       spacing: 0,
     });
 
     // Load paper garbage as spritesheet (2x2 grid)
-    this.load.spritesheet('garbage-paper', 'garbage-paper.png', {
-      frameWidth: 512, // Assuming each frame is 512x512 pixels
-      frameHeight: 512,
+    this.load.spritesheet('garbage-paper', 'textures/garbage-paper-small.png', {
+      frameWidth: 128, // Assuming each frame is 128x128 pixels
+      frameHeight: 128,
       spacing: 0,
     });
 
-    this.load.image('drop-zone-icon', 'drop-zone-icon.png'); // Drop zone icon
+    this.load.image('drop-zone-icon', 'textures/drop-zone-icon.png'); // Drop zone icon
   }
 
   create() {

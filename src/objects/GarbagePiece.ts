@@ -36,7 +36,7 @@ export const GARBAGE_ACCEPTANCE_MAP: Record<BinType, GarbageType[]> = {
 export class GarbagePiece extends Phaser.GameObjects.Sprite {
   private garbageType: GarbageType;
   private originalPosition: { x: number; y: number };
-  private pieceScale: number = 0.25;
+  private pieceScale: number = 1;
 
   // Animation parameters
   private animParams = {
