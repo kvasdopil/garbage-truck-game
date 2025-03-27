@@ -18,15 +18,14 @@ resource "google_compute_backend_bucket" "default" {
   bucket_name = var.bucket_name
   enable_cdn  = true
   
-  # Add cache control settings
+  # Update cache control settings for aggressive cache invalidation
   cdn_policy {
-    cache_mode        = "CACHE_ALL_STATIC"
-    client_ttl        = 3600  # 1 hour client-side caching
-    default_ttl       = 3600  # 1 hour default TTL
-    max_ttl           = 86400 # 24 hours maximum TTL
-    negative_caching  = true
+    cache_mode        = "USE_ORIGIN_HEADERS"  # Respect the cache headers we set on objects
+    client_ttl        = 0      # No client-side caching
+    default_ttl       = 0      # No default caching
+    max_ttl           = 3600   # Maximum 1 hour caching
+    negative_caching  = false  # Don't cache negative responses
     
-    # Force cache revalidation for html files
     cache_key_policy {
       include_http_headers = ["X-Requested-With"]
     }
