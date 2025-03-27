@@ -1,13 +1,6 @@
 # Default cache control settings for different file types
 
 # HTML files should have a short cache time to ensure fresh content
-resource "google_storage_bucket_object_access_control" "html_files" {
-  object = "${var.bucket_path}/index.html"
-  bucket = var.bucket_name
-  role   = "READER"
-  entity = "allUsers"
-}
-
 resource "null_resource" "update_html_cache_headers" {
   triggers = {
     version = timestamp()
@@ -16,8 +9,6 @@ resource "null_resource" "update_html_cache_headers" {
   provisioner "local-exec" {
     command = "gsutil setmeta -h 'Cache-Control:no-cache, max-age=0, must-revalidate' gs://${var.bucket_name}/${var.bucket_path}/*.html"
   }
-
-  depends_on = [google_storage_bucket_object_access_control.html_files]
 }
 
 # Static assets can be cached longer
