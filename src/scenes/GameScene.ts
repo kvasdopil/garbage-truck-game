@@ -63,6 +63,8 @@ export class GameScene extends Phaser.Scene {
     this.load.image('bin-metal-full', 'textures/bin-metal-full.png'); // Full metal bin
     this.load.image('bin-glass-empty', 'textures/bin-glass-empty.png'); // Empty glass bin
     this.load.image('bin-glass-full', 'textures/bin-glass-full.png'); // Full glass bin
+    this.load.image('bin-paper-empty', 'textures/bin-paper-empty.png'); // Empty paper bin
+    this.load.image('bin-paper-full', 'textures/bin-paper-full.png'); // Full paper bin
 
     // Load icons spritesheet (2x2 grid with star, flag, cup, go)
     this.load.spritesheet('icons', 'textures/icons.png', {
@@ -101,6 +103,13 @@ export class GameScene extends Phaser.Scene {
 
     // Load glass garbage as spritesheet (2x2 grid)
     this.load.spritesheet('garbage-glass', 'textures/garbage-glass.png', {
+      frameWidth: 128,
+      frameHeight: 128,
+      spacing: 0,
+    });
+
+    // Load general garbage as spritesheet (2x2 grid)
+    this.load.spritesheet('garbage-general', 'textures/garbage-general.png', {
       frameWidth: 128,
       frameHeight: 128,
       spacing: 0,
@@ -192,13 +201,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createBins(): void {
-    // Create 6 bins: 1 plastic, 1 food, 1 metal, 1 glass, and 2 generic bins
+    // Create 6 bins: 1 plastic, 1 food, 1 metal, 1 glass, 1 paper, and 1 generic bin
     const binTypes = [
       BinType.PLASTIC,
       BinType.FOOD,
       BinType.METAL,
       BinType.GLASS,
-      BinType.GENERIC,
+      BinType.PAPER,
       BinType.GENERIC,
     ];
 

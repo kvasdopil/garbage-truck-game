@@ -22,15 +22,20 @@ export enum GarbageType {
   GLASS2 = 'glass2',
   GLASS3 = 'glass3',
   GLASS4 = 'glass4',
+  GENERAL1 = 'general1',
+  GENERAL2 = 'general2',
+  GENERAL3 = 'general3',
+  GENERAL4 = 'general4',
 }
 
 // Map of which bin types accept which garbage types
 export const GARBAGE_ACCEPTANCE_MAP: Record<BinType, GarbageType[]> = {
   [BinType.GENERIC]: [
-    GarbageType.PAPER1,
-    GarbageType.PAPER2,
-    GarbageType.PAPER3,
-    GarbageType.PAPER4,
+    // Only generic bin accepts general garbage
+    GarbageType.GENERAL1,
+    GarbageType.GENERAL2,
+    GarbageType.GENERAL3,
+    GarbageType.GENERAL4,
   ],
   [BinType.PLASTIC]: [
     GarbageType.PLASTIC1,
@@ -41,6 +46,7 @@ export const GARBAGE_ACCEPTANCE_MAP: Record<BinType, GarbageType[]> = {
   [BinType.FOOD]: [GarbageType.FOOD1, GarbageType.FOOD2, GarbageType.FOOD3, GarbageType.FOOD4],
   [BinType.METAL]: [GarbageType.METAL1, GarbageType.METAL2, GarbageType.METAL3, GarbageType.METAL4],
   [BinType.GLASS]: [GarbageType.GLASS1, GarbageType.GLASS2, GarbageType.GLASS3, GarbageType.GLASS4],
+  [BinType.PAPER]: [GarbageType.PAPER1, GarbageType.PAPER2, GarbageType.PAPER3, GarbageType.PAPER4],
 };
 
 export class GarbagePiece extends Phaser.GameObjects.Sprite {
@@ -167,6 +173,28 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
           frame = 2;
           break;
         case GarbageType.GLASS4:
+          frame = 3;
+          break;
+      }
+    } else if (
+      type === GarbageType.GENERAL1 ||
+      type === GarbageType.GENERAL2 ||
+      type === GarbageType.GENERAL3 ||
+      type === GarbageType.GENERAL4
+    ) {
+      // Map general types to frame indices (0-based)
+      texture = 'garbage-general';
+      switch (type) {
+        case GarbageType.GENERAL1:
+          frame = 0;
+          break;
+        case GarbageType.GENERAL2:
+          frame = 1;
+          break;
+        case GarbageType.GENERAL3:
+          frame = 2;
+          break;
+        case GarbageType.GENERAL4:
           frame = 3;
           break;
       }

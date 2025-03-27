@@ -85,6 +85,11 @@ export class GarbageManager {
       GarbageType.GLASS2,
       GarbageType.GLASS3,
       GarbageType.GLASS4,
+      // General garbage types
+      GarbageType.GENERAL1,
+      GarbageType.GENERAL2,
+      GarbageType.GENERAL3,
+      GarbageType.GENERAL4,
     ];
 
     // Choose a random garbage type
