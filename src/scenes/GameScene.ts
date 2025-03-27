@@ -2,24 +2,28 @@ import Phaser from 'phaser';
 
 /*
  Main game scene
- - contains the truck and garbage bins
+ - contains a garbage truck and various types of garbage bins (plastic, food, metal, glass, paper, generic)
  - bins can be full or empty
  - bins are empty by default
- - bins can be dragged to the truck or any home zone
+ - bins can be dragged to the truck or any home zone in the 2x3 grid on the right side
  - when a bin is in the truck zone, it will tip over if the bin is not empty
- - after a bin is tipped over it is empty and cannot be tipped over again
- - when a bin is in a home zone, it will reset to its original position
+ - after a bin is tipped over it is empty and cannot be tipped over again until refilled
+ - when a bin is in a home zone, it can receive garbage pieces
  - when a bin is dropped outside of the truck or home zones, it will reset to its previous position
- - bins become full when garbage is dropped into them
- - a garbage piece appears occasionally at the top of the screen with a slide and bounce animation
- - only a certain number of garbage pieces can be visible at a time, when there's too many, they stop spawning
- - garbage pieces can be dragged to the bins, when the bin is parked in the home zone
- - when anything is dragged, spawning of garbage pieces is paused
+ - bins become full when matching garbage is dropped into them
+ - garbage pieces spawn from the bottom of the screen with a slide and bounce animation
+ - only a certain number of garbage pieces can be visible at a time
+ - garbage pieces can only be dropped in matching bins (e.g., paper garbage in paper bin)
+ - when anything is being dragged, spawning of garbage pieces is paused
  - a score counter with a star icon appears in the top left corner
- - when a full bin is emptied into the truck, a star appears in the center of the screen
- - the star flies in a random direction for 0.5 seconds
- - after the star stops flying, the player can click/tap it
- - when clicked, the star flies to the score counter and increases the score by 1
+ - when a full bin is emptied into the truck, stars appear in the center of the screen
+ - the number of stars matches the amount of garbage that was in the bin
+ - stars fly in random directions for 0.5 seconds
+ - after a star stops flying, the player can click/tap it
+ - when clicked, stars fly to the score counter and increase the score
+ - the game features a fullscreen toggle button in the top right corner
+ - the background shows an outdoor scene with a light beige home dock area on the right
+ - all game elements are properly layered with appropriate z-index (depth) values
 */
 // import Phaser from 'phaser';
 import { GarbageBin, BinType } from '../objects/GarbageBin';
