@@ -159,7 +159,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
   /**
    * Animate bin to a drop zone
    */
-  animateToZone(zone: DropZone, isTruckZone: boolean): Promise<void> {
+  animateToZone(zone: DropZone, isTruckZone: boolean, onEmptied?: () => void): Promise<void> {
     return new Promise(resolve => {
       // Clear any previous zone reference first
       const currentZone = this.getCurrentZone();
@@ -193,7 +193,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
             onComplete: () => {
               // If it's the truck zone and bin is not empty, play tipping animation
               if (isTruckZone && !this.getIsEmpty()) {
-                this.playTippingAnimation().then(() => resolve());
+                this.playTippingAnimation(onEmptied).then(() => resolve());
               } else {
                 resolve();
               }
@@ -259,7 +259,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
   /**
    * Play the bin tipping animation
    */
-  playTippingAnimation(): Promise<void> {
+  playTippingAnimation(onEmptied?: () => void): Promise<void> {
     return new Promise(resolve => {
       // Disable interaction during animation
       this.disableInteractive();
@@ -296,6 +296,11 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
         onComplete: () => {
           // Mark bin as empty exactly when it's tipped over
           this.setEmpty(true);
+
+          // Call the onEmptied callback at the exact moment the bin is emptied
+          if (onEmptied) {
+            onEmptied();
+          }
 
           // Update the animation sprite to show empty bin
           animBin.setTexture(this.emptyTexture);

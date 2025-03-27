@@ -21,6 +21,8 @@ import { GarbageBin, BinType } from '../objects/GarbageBin';
 import { GarbagePiece } from '../objects/GarbagePiece';
 import { DropZone, ZoneType } from '../objects/DropZone';
 import { GarbageManager } from '../objects/GarbageManager';
+import { ScoreCounter } from '../objects/ScoreCounter';
+import { FlyStar } from '../objects/FlyStar';
 
 export class GameScene extends Phaser.Scene {
   private truck!: Phaser.GameObjects.Sprite;
@@ -30,6 +32,7 @@ export class GameScene extends Phaser.Scene {
   private isAnimating: boolean = false;
   private currentAnimatingBin: GarbageBin | null = null;
   private garbageManager!: GarbageManager;
+  private scoreCounter!: ScoreCounter;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -48,6 +51,13 @@ export class GameScene extends Phaser.Scene {
     this.load.image('bin-plastic-full', 'textures/bin-plastic-full.png'); // Full plastic bin
     this.load.image('bin-food-empty', 'textures/bin-food-empty.png'); // Empty food bin
     this.load.image('bin-food-full', 'textures/bin-food-full.png'); // Full food bin
+
+    // Load icons spritesheet (2x2 grid with star, flag, cup, go)
+    this.load.spritesheet('icons', 'textures/icons.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+      spacing: 0,
+    });
 
     // Load food garbage as spritesheet (2x2 grid)
     this.load.spritesheet('garbage-food', 'textures/garbage-food.png', {
@@ -84,6 +94,9 @@ export class GameScene extends Phaser.Scene {
       0.5 // Alpha (transparency)
     );
     homeDockBg.setDepth(-1); // Place behind other elements
+
+    // Create the score counter at the top left corner
+    this.scoreCounter = new ScoreCounter(this, 50, 50);
 
     // Create the truck sprite
     this.truck = this.add.sprite(
@@ -268,7 +281,18 @@ export class GameScene extends Phaser.Scene {
         }
       }
 
-      bin.animateToZone(targetZone, true).then(() => {
+      // Check if the bin is full (not empty)
+      const binWasFull = !bin.getIsEmpty();
+
+      // Define onEmptied callback to spawn a flying star at the exact moment bin is emptied
+      const onEmptied = () => {
+        // Only spawn a star if the bin was actually full
+        if (binWasFull) {
+          this.spawnFlyStar();
+        }
+      };
+
+      bin.animateToZone(targetZone, true, onEmptied).then(() => {
         this.isAnimating = false;
         this.currentAnimatingBin = null;
       });
@@ -406,5 +430,14 @@ export class GameScene extends Phaser.Scene {
         bin.setCurrentZone(null);
       }
     }
+  }
+
+  private spawnFlyStar(): void {
+    // Spawn a star at the center of the screen
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
+
+    // Create new flying star that targets the score counter
+    new FlyStar(this, centerX, centerY, this.scoreCounter);
   }
 }

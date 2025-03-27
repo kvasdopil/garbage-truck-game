@@ -38,4 +38,8 @@ magick "$SCRIPT_DIR/truck.png" -resize 50% "$TGT_DIR/truck.png"
 echo "Converting drop-zone-icon.png to 20%..."
 magick "$SCRIPT_DIR/drop-zone-icon.png" -resize 20% -sharpen 0x1.0 "$TGT_DIR/drop-zone-icon.png"
 
+# incovert icons.png to 25%
+echo "Converting icons.png to 12.5%..."
+magick "$SCRIPT_DIR/icons.png" -resize 12.5% -sharpen 0x1.0 "$TGT_DIR/icons.png"
+
 echo "Conversion complete!" 
