@@ -259,7 +259,7 @@ export class GameScene extends Phaser.Scene {
     garbage.highlightAcceptingBins(this.bins, pointer.x, pointer.y, this.currentAnimatingBin);
   }
 
-  private handleBinDragEnd(bin: GarbageBin, pointer: Phaser.Input.Pointer): void {
+  private async handleBinDragEnd(bin: GarbageBin, pointer: Phaser.Input.Pointer): Promise<void> {
     let droppedInZone = false;
     let targetZone: DropZone | null = null;
 
@@ -294,10 +294,9 @@ export class GameScene extends Phaser.Scene {
         }
       };
 
-      bin.animateToZone(targetZone, true, onEmptied).then(() => {
-        this.isAnimating = false;
-        this.currentAnimatingBin = null;
-      });
+      await bin.animateToZone(targetZone, true, onEmptied);
+      this.isAnimating = false;
+      this.currentAnimatingBin = null;
     } else {
       // Check if dropped in any home zone
       for (const homeZone of this.homeDropZones) {
@@ -320,10 +319,9 @@ export class GameScene extends Phaser.Scene {
             }
           }
 
-          bin.animateToZone(targetZone, false).then(() => {
-            this.isAnimating = false;
-            this.currentAnimatingBin = null;
-          });
+          await bin.animateToZone(targetZone, false);
+          this.isAnimating = false;
+          this.currentAnimatingBin = null;
           break;
         }
       }
@@ -359,35 +357,34 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Run cleanup to fix any inconsistencies after a 500ms delay
-    this.time.delayedCall(500, () => {
-      this.cleanupZoneOccupancy();
-    });
+    await new Promise(resolve => this.time.delayedCall(500, resolve));
+    this.cleanupZoneOccupancy();
   }
 
-  private handleGarbageDragEnd(garbage: GarbagePiece, pointer: Phaser.Input.Pointer): void {
-    garbage.handleDragEnd().then(() => {
-      // Check for collision with bins
-      if (!this.checkGarbageCollisionWithBins(garbage, pointer.x, pointer.y)) {
-        // If no collision, return to original position
-        garbage.resetToOriginalPosition();
-      }
-    });
+  private async handleGarbageDragEnd(garbage: GarbagePiece, pointer: Phaser.Input.Pointer) {
+    await garbage.handleDragEnd();
+    // Check for collision with bins
+    if (!this.checkGarbageCollisionWithBins(garbage, pointer.x, pointer.y)) {
+      // If no collision, return to original position
+      garbage.resetToOriginalPosition();
+    }
   }
 
-  private checkGarbageCollisionWithBins(
+  private async checkGarbageCollisionWithBins(
     garbage: GarbagePiece,
     pointerX: number,
     pointerY: number
-  ): boolean {
-    return garbage.checkBinCollision(
+  ): Promise<boolean> {
+    const collided = await garbage.checkBinCollision(
       this.bins,
       pointerX,
       pointerY,
-      this.currentAnimatingBin,
-      () => {
-        this.garbageManager.removeGarbagePiece(garbage);
-      }
+      this.currentAnimatingBin
     );
+    if (collided) {
+      this.garbageManager.removeGarbagePiece(garbage);
+    }
+    return collided;
   }
 
   private cleanupZoneOccupancy(): void {

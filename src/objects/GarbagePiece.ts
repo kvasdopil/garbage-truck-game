@@ -158,7 +158,7 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
   /**
    * Handle end of drag operation
    */
-  handleDragEnd(): Promise<void> {
+  async handleDragEnd(): Promise<void> {
     return new Promise(resolve => {
       // Reset scale
       this.scene.tweens.add({
@@ -176,13 +176,12 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
   /**
    * Check if this garbage collides with any bin and handle the interaction
    */
-  checkBinCollision(
+  async checkBinCollision(
     bins: Phaser.GameObjects.GameObject[],
     pointerX: number,
     pointerY: number,
-    animatingBin: Phaser.GameObjects.GameObject | null,
-    onCollected: () => void
-  ): boolean {
+    animatingBin: Phaser.GameObjects.GameObject | null
+  ): Promise<boolean> {
     // Check each bin
     for (const gameObj of bins) {
       const bin = gameObj as any; // Using any to access bin methods
@@ -214,9 +213,7 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
             bin.playGarbageAddedFeedback();
 
             // Play collection animation and remove garbage
-            this.playCollectionAnimation().then(() => {
-              onCollected();
-            });
+            await this.playCollectionAnimation();
 
             return true;
           }
@@ -260,7 +257,7 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
   /**
    * Play a collection animation (when garbage is put in bin)
    */
-  playCollectionAnimation(): Promise<void> {
+  async playCollectionAnimation(): Promise<void> {
     return new Promise(resolve => {
       this.scene.tweens.add({
         targets: this,

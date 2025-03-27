@@ -176,62 +176,62 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
   /**
    * Animate bin to a drop zone
    */
-  animateToZone(
+  async animateToZone(
     zone: DropZone,
     isTruckZone: boolean,
     onEmptied?: (garbageCount: number) => void
-  ): Promise<void> {
-    return new Promise(resolve => {
-      // Clear any previous zone reference first
-      const currentZone = this.getCurrentZone();
-      if (currentZone && currentZone !== zone) {
-        currentZone.setOccupant(null);
-      }
+  ) {
+    // Clear any previous zone reference first
+    const currentZone = this.getCurrentZone();
+    if (currentZone && currentZone !== zone) {
+      currentZone.setOccupant(null);
+    }
 
-      // Assign the bin to the zone
-      zone.setOccupant(this);
-      this.setCurrentZone(zone);
+    // Assign the bin to the zone
+    zone.setOccupant(this);
+    this.setCurrentZone(zone);
 
-      // Double check zone-bin relationship
-      if (zone.getOccupant() !== this || this.getCurrentZone() !== zone) {
-        console.error('Zone-bin relationship inconsistent after setting');
-      }
+    // Double check zone-bin relationship
+    if (zone.getOccupant() !== this || this.getCurrentZone() !== zone) {
+      console.error('Zone-bin relationship inconsistent after setting');
+    }
 
-      // Animation sequence
+    // Animation sequence
+    await new Promise(resolve => {
       this.scene.tweens.add({
         targets: this,
         scale: 1.3,
         duration: 200,
         yoyo: true,
-        onComplete: () => {
-          this.scene.tweens.add({
-            targets: this,
-            x: zone.x,
-            y: zone.y,
-            scale: 1.0,
-            duration: 300,
-            ease: 'Back.out',
-            onComplete: () => {
-              // If it's the truck zone and bin is not empty, play tipping animation
-              if (isTruckZone && !this.getIsEmpty()) {
-                this.playTippingAnimation(onEmptied).then(() => resolve());
-              } else {
-                resolve();
-              }
-            },
-          });
-        },
+        onComplete: resolve,
       });
     });
+
+    await new Promise(resolve => {
+      this.scene.tweens.add({
+        targets: this,
+        x: zone.x,
+        y: zone.y,
+        scale: 1.0,
+        duration: 300,
+        ease: 'Back.out',
+        onComplete: resolve,
+      });
+    });
+
+    // If it's the truck zone and bin is not empty, play tipping animation
+    if (isTruckZone && !this.getIsEmpty()) {
+      await this.playTippingAnimation(onEmptied);
+    }
   }
 
   /**
    * Reset bin to its last valid position
    */
-  resetPosition(): Promise<void> {
-    return new Promise(resolve => {
-      const lastPosition = this.getLastValidPosition();
+  async resetPosition(): Promise<void> {
+    const lastPosition = this.getLastValidPosition();
 
+    return new Promise(resolve => {
       this.scene.tweens.add({
         targets: this,
         x: lastPosition.x,
@@ -260,101 +260,100 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
   /**
    * Play feedback animation when garbage is added
    */
-  playGarbageAddedFeedback(): Promise<void> {
-    return new Promise(resolve => {
+  async playGarbageAddedFeedback() {
+    await new Promise(resolve =>
       this.scene.tweens.add({
         targets: this,
         scale: 1.1,
         duration: 100,
         yoyo: true,
         ease: 'Power1',
-        onComplete: () => {
-          // Make sure bin returns to original scale
-          this.setScale(1.0);
-          resolve();
-        },
-      });
-    });
+        onComplete: resolve,
+      })
+    );
+
+    this.setScale(1.0);
   }
 
   /**
    * Play the bin tipping animation
    */
-  playTippingAnimation(onEmptied?: (garbageCount: number) => void): Promise<void> {
-    return new Promise(resolve => {
-      // Disable interaction during animation
-      this.disableInteractive();
+  async playTippingAnimation(onEmptied?: (garbageCount: number) => void) {
+    // Disable interaction during animation
+    this.disableInteractive();
 
-      // Store original position
-      const originalX = this.x;
-      const originalY = this.y;
+    // Store original position
+    const originalX = this.x;
+    const originalY = this.y;
 
-      // Remove bin from scene temporarily
-      this.setVisible(false);
+    // Remove bin from scene temporarily
+    this.setVisible(false);
 
-      // Create container at the bin's position
-      const animContainer = this.scene.add.container(originalX, originalY);
+    // Create container at the bin's position
+    const animContainer = this.scene.add.container(originalX, originalY);
 
-      // Create a clone of the bin for animation
-      const animBin = this.scene.add.sprite(0, 0, this.texture.key);
-      animBin.setScale(1.0);
+    // Create a clone of the bin for animation
+    const animBin = this.scene.add.sprite(0, 0, this.texture.key);
+    animBin.setScale(1.0);
 
-      // Offset the bin within the container to rotate around bottom-left corner
-      const width = animBin.width * 1.0;
-      const height = animBin.height * 1.0;
-      animBin.x = width * this.tippingAnimParams.pivotOrigin.x;
-      animBin.y = -height * (1 - this.tippingAnimParams.pivotOrigin.y);
+    // Offset the bin within the container to rotate around bottom-left corner
+    const width = animBin.width * 1.0;
+    const height = animBin.height * 1.0;
+    animBin.x = width * this.tippingAnimParams.pivotOrigin.x;
+    animBin.y = -height * (1 - this.tippingAnimParams.pivotOrigin.y);
 
-      // Add the bin to the container
-      animContainer.add(animBin);
+    // Add the bin to the container
+    animContainer.add(animBin);
 
-      // Create tipping animation sequence for the container
+    // Create tipping animation sequence for the container
+    await new Promise(resolve =>
       this.scene.tweens.add({
         targets: animContainer,
         rotation: Phaser.Math.DegToRad(this.tippingAnimParams.rotationAngle),
         duration: this.tippingAnimParams.rotationDuration,
         ease: this.tippingAnimParams.easeFunction,
-        onComplete: () => {
-          // Get garbage count before emptying
-          const garbageCount = this.garbageCount;
+        onComplete: resolve,
+      })
+    );
 
-          // Empty the bin
-          this.emptyBin();
+    // Get garbage count before emptying
+    const garbageCount = this.garbageCount;
 
-          // Call the onEmptied callback at the exact moment the bin is emptied
-          if (onEmptied && garbageCount > 0) {
-            onEmptied(garbageCount);
-          }
+    // Empty the bin
+    this.emptyBin();
 
-          // Update the animation sprite to show empty bin
-          animBin.setTexture(this.emptyTexture);
+    // Call the onEmptied callback at the exact moment the bin is emptied
+    if (onEmptied && garbageCount > 0) {
+      onEmptied(garbageCount);
+    }
 
-          // Hold for specified duration
-          this.scene.time.delayedCall(this.tippingAnimParams.holdDuration, () => {
-            // Return to original rotation
-            this.scene.tweens.add({
-              targets: animContainer,
-              rotation: 0,
-              duration: this.tippingAnimParams.returnDuration,
-              ease: this.tippingAnimParams.easeFunction,
-              onComplete: () => {
-                // Restore original bin
-                this.setVisible(true);
+    // Update the animation sprite to show empty bin
+    animBin.setTexture(this.emptyTexture);
 
-                // Remove animation container
-                animContainer.destroy();
+    // Hold for specified duration
+    await new Promise(resolve =>
+      this.scene.time.delayedCall(this.tippingAnimParams.holdDuration, resolve)
+    );
 
-                // Re-enable interaction
-                this.setInteractive();
+    // Return to original rotation
+    await new Promise(resolve =>
+      this.scene.tweens.add({
+        targets: animContainer,
+        rotation: 0,
+        duration: this.tippingAnimParams.returnDuration,
+        ease: this.tippingAnimParams.easeFunction,
+        onComplete: resolve,
+      })
+    );
 
-                // Resolve the promise to signal animation completion
-                resolve();
-              },
-            });
-          });
-        },
-      });
-    });
+    // Restore original bin
+    this.setVisible(true);
+
+    // Remove animation container
+    animContainer.destroy();
+
+    // Re-enable interaction
+    this.setInteractive();
   }
 
   /**

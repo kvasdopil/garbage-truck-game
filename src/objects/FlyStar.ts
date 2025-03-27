@@ -62,7 +62,7 @@ export class FlyStar extends Phaser.GameObjects.Sprite {
     });
   }
 
-  private onStarClicked(): void {
+  private async onStarClicked(): Promise<void> {
     // Only collect if not already collected and not in initial flying phase
     if (this.isCollected || this.isFlying) return;
 
@@ -79,28 +79,32 @@ export class FlyStar extends Phaser.GameObjects.Sprite {
     const targetY = this.targetCounter.y;
 
     // Fly to the score counter
-    this.scene.tweens.add({
-      targets: this,
-      x: targetX,
-      y: targetY,
-      scale: 0.5,
-      duration: 400,
-      ease: 'Cubic.easeIn',
-      onComplete: () => {
-        // Increment the score when star reaches the counter
-        this.targetCounter.incrementScore();
+    await new Promise(resolve =>
+      this.scene.tweens.add({
+        targets: this,
+        x: targetX,
+        y: targetY,
+        scale: 0.5,
+        duration: 400,
+        ease: 'Cubic.easeIn',
+        onComplete: resolve,
+      })
+    );
 
-        // Final flash effect before destroying
-        this.scene.tweens.add({
-          targets: this,
-          scale: 1.5,
-          alpha: 0,
-          duration: 200,
-          onComplete: () => {
-            this.destroy();
-          },
-        });
-      },
-    });
+    // Increment the score when star reaches the counter
+    this.targetCounter.incrementScore();
+
+    // Final flash effect before destroying
+    await new Promise(resolve =>
+      this.scene.tweens.add({
+        targets: this,
+        scale: 1.5,
+        alpha: 0,
+        duration: 200,
+        onComplete: resolve,
+      })
+    );
+
+    this.destroy();
   }
 }
