@@ -207,10 +207,8 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
         if (binZone && binZone.isHomeZone()) {
           // Check if bin accepts this garbage type
           if (this.isAcceptedBy(bin.getType())) {
-            // Make the bin full if it was empty
-            if (bin.getIsEmpty()) {
-              bin.setEmpty(false);
-            }
+            // Increment the garbage count in the bin
+            bin.addGarbage();
 
             // Play bin feedback animation
             bin.playGarbageAddedFeedback();

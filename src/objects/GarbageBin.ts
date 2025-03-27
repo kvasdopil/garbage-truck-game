@@ -9,7 +9,7 @@ export enum BinType {
 
 export class GarbageBin extends Phaser.GameObjects.Sprite {
   private binType: BinType;
-  private isEmpty: boolean = true;
+  private garbageCount: number = 0; // Counter for garbage pieces
   private currentZone: DropZone | null = null;
   private lastValidPosition: { x: number; y: number };
 
@@ -65,22 +65,39 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
    * Update the bin's texture based on its state
    */
   updateTexture(): void {
-    this.setTexture(this.isEmpty ? this.emptyTexture : this.fullTexture);
+    this.setTexture(this.getIsEmpty() ? this.emptyTexture : this.fullTexture);
   }
 
   /**
-   * Set the bin's empty state
+   * Increment the garbage count and update texture
    */
-  setEmpty(isEmpty: boolean): void {
-    this.isEmpty = isEmpty;
+  addGarbage(): void {
+    this.garbageCount++;
     this.updateTexture();
+  }
+
+  /**
+   * Get the current garbage count
+   */
+  getGarbageCount(): number {
+    return this.garbageCount;
+  }
+
+  /**
+   * Reset the garbage count and update texture
+   */
+  emptyBin(): number {
+    const previousCount = this.garbageCount;
+    this.garbageCount = 0;
+    this.updateTexture();
+    return previousCount;
   }
 
   /**
    * Check if the bin is empty
    */
   getIsEmpty(): boolean {
-    return this.isEmpty;
+    return this.garbageCount === 0;
   }
 
   /**
@@ -159,7 +176,11 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
   /**
    * Animate bin to a drop zone
    */
-  animateToZone(zone: DropZone, isTruckZone: boolean, onEmptied?: () => void): Promise<void> {
+  animateToZone(
+    zone: DropZone,
+    isTruckZone: boolean,
+    onEmptied?: (garbageCount: number) => void
+  ): Promise<void> {
     return new Promise(resolve => {
       // Clear any previous zone reference first
       const currentZone = this.getCurrentZone();
@@ -259,7 +280,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
   /**
    * Play the bin tipping animation
    */
-  playTippingAnimation(onEmptied?: () => void): Promise<void> {
+  playTippingAnimation(onEmptied?: (garbageCount: number) => void): Promise<void> {
     return new Promise(resolve => {
       // Disable interaction during animation
       this.disableInteractive();
@@ -294,12 +315,15 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
         duration: this.tippingAnimParams.rotationDuration,
         ease: this.tippingAnimParams.easeFunction,
         onComplete: () => {
-          // Mark bin as empty exactly when it's tipped over
-          this.setEmpty(true);
+          // Get garbage count before emptying
+          const garbageCount = this.garbageCount;
+
+          // Empty the bin
+          this.emptyBin();
 
           // Call the onEmptied callback at the exact moment the bin is emptied
-          if (onEmptied) {
-            onEmptied();
+          if (onEmptied && garbageCount > 0) {
+            onEmptied(garbageCount);
           }
 
           // Update the animation sprite to show empty bin

@@ -15,6 +15,11 @@ import Phaser from 'phaser';
  - only a certain number of garbage pieces can be visible at a time, when there's too many, they stop spawning
  - garbage pieces can be dragged to the bins, when the bin is parked in the home zone
  - when anything is dragged, spawning of garbage pieces is paused
+ - a score counter with a star icon appears in the top left corner
+ - when a full bin is emptied into the truck, a star appears in the center of the screen
+ - the star flies in a random direction for 0.5 seconds
+ - after the star stops flying, the player can click/tap it
+ - when clicked, the star flies to the score counter and increases the score by 1
 */
 // import Phaser from 'phaser';
 import { GarbageBin, BinType } from '../objects/GarbageBin';
@@ -281,14 +286,11 @@ export class GameScene extends Phaser.Scene {
         }
       }
 
-      // Check if the bin is full (not empty)
-      const binWasFull = !bin.getIsEmpty();
-
-      // Define onEmptied callback to spawn a flying star at the exact moment bin is emptied
-      const onEmptied = () => {
-        // Only spawn a star if the bin was actually full
-        if (binWasFull) {
-          this.spawnFlyStar();
+      // Define onEmptied callback to spawn flying stars based on garbage count
+      const onEmptied = (garbageCount: number) => {
+        // Only spawn stars if the bin had garbage
+        if (garbageCount > 0) {
+          this.spawnFlyStar(garbageCount);
         }
       };
 
@@ -432,12 +434,25 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private spawnFlyStar(): void {
-    // Spawn a star at the center of the screen
+  private spawnFlyStar(count: number = 1): void {
+    // Spawn stars at the center of the screen based on count
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
-    // Create new flying star that targets the score counter
-    new FlyStar(this, centerX, centerY, this.scoreCounter);
+    // Create spacing variation for multiple stars
+    const baseSpacing = 20;
+
+    // Spawn stars with slight offset if multiple stars
+    for (let i = 0; i < count; i++) {
+      // Add slight offset for each star to prevent overlapping
+      const offsetX = count > 1 ? Phaser.Math.Between(-baseSpacing, baseSpacing) : 0;
+      const offsetY = count > 1 ? Phaser.Math.Between(-baseSpacing, baseSpacing) : 0;
+
+      // Add a small delay for each star if multiple stars
+      this.time.delayedCall(i * 100, () => {
+        // Create new flying star that targets the score counter
+        new FlyStar(this, centerX + offsetX, centerY + offsetY, this.scoreCounter);
+      });
+    }
   }
 }
