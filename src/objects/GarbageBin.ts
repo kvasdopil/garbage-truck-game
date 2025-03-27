@@ -250,29 +250,53 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
    * Highlight the bin when garbage hovers over it
    */
   highlight(shouldHighlight: boolean): void {
-    if (shouldHighlight) {
-      this.setScale(1.1);
-    } else {
-      this.setScale(1.0);
-    }
+    this.scene.tweens.add({
+      targets: this,
+      scale: shouldHighlight ? 1.1 : 1.0,
+      duration: 150,
+      ease: 'Power1',
+    });
   }
 
   /**
    * Play feedback animation when garbage is added
    */
   async playGarbageAddedFeedback() {
+    // First a quick squash effect
     await new Promise(resolve =>
       this.scene.tweens.add({
         targets: this,
-        scale: 1.1,
+        scaleX: 1.2,
+        scaleY: 0.9,
         duration: 100,
-        yoyo: true,
         ease: 'Power1',
         onComplete: resolve,
       })
     );
 
-    this.setScale(1.0);
+    // Then bounce back with a slight stretch
+    await new Promise(resolve =>
+      this.scene.tweens.add({
+        targets: this,
+        scaleX: 0.95,
+        scaleY: 1.15,
+        duration: 100,
+        ease: 'Power1',
+        onComplete: resolve,
+      })
+    );
+
+    // Finally return to normal with a small bounce
+    await new Promise(resolve =>
+      this.scene.tweens.add({
+        targets: this,
+        scaleX: 1.0,
+        scaleY: 1.0,
+        duration: 200,
+        ease: 'Back.out',
+        onComplete: resolve,
+      })
+    );
   }
 
   /**

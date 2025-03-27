@@ -12,7 +12,7 @@ export class GarbageManager {
   // Garbage animation params
   private garbageAnimParams = {
     yPosition: 60, // Y-position for garbage pieces
-    spacing: 100, // Horizontal spacing between garbage pieces
+    spacing: 120, // Horizontal spacing between garbage pieces (increased from 100)
   };
 
   constructor(scene: Phaser.Scene) {

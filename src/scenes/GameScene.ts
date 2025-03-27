@@ -364,27 +364,19 @@ export class GameScene extends Phaser.Scene {
   private async handleGarbageDragEnd(garbage: GarbagePiece, pointer: Phaser.Input.Pointer) {
     await garbage.handleDragEnd();
     // Check for collision with bins
-    if (!this.checkGarbageCollisionWithBins(garbage, pointer.x, pointer.y)) {
-      // If no collision, return to original position
-      garbage.resetToOriginalPosition();
-    }
-  }
-
-  private async checkGarbageCollisionWithBins(
-    garbage: GarbagePiece,
-    pointerX: number,
-    pointerY: number
-  ): Promise<boolean> {
     const collided = await garbage.checkBinCollision(
       this.bins,
-      pointerX,
-      pointerY,
+      pointer.x,
+      pointer.y,
       this.currentAnimatingBin
     );
     if (collided) {
       this.garbageManager.removeGarbagePiece(garbage);
     }
-    return collided;
+    if (!collided) {
+      // If no collision, return to original position
+      garbage.resetToOriginalPosition();
+    }
   }
 
   private cleanupZoneOccupancy(): void {
