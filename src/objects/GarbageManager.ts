@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { GarbagePiece, GarbageType } from './GarbagePiece';
+import { GarbagePiece } from './GarbagePiece';
+import { BinType } from './GarbageBin';
 
 export class GarbageManager {
   private scene: Phaser.Scene;
@@ -8,6 +9,19 @@ export class GarbageManager {
   private maxGarbagePieces: number = 5;
   private isDragging: boolean = false;
   private spawnInterval: number = 3000; // 3 seconds
+
+  // Available garbage types
+  private static readonly GARBAGE_TYPES: BinType[] = [
+    BinType.FOOD,
+    BinType.PLASTIC,
+    BinType.PAPER,
+    BinType.METAL,
+    BinType.GLASS,
+    BinType.GENERAL,
+  ];
+
+  // Number of variants per type
+  private static readonly VARIANTS_PER_TYPE = 4;
 
   // Garbage animation params
   private garbageAnimParams = {
@@ -58,43 +72,12 @@ export class GarbageManager {
       return;
     }
 
-    // All garbage types
-    const garbageTypes: GarbageType[] = [
-      // Food garbage types
-      GarbageType.FOOD1,
-      GarbageType.FOOD2,
-      GarbageType.FOOD3,
-      GarbageType.FOOD4,
-      // Plastic garbage types
-      GarbageType.PLASTIC1,
-      GarbageType.PLASTIC2,
-      GarbageType.PLASTIC3,
-      GarbageType.PLASTIC4,
-      // Paper garbage types
-      GarbageType.PAPER1,
-      GarbageType.PAPER2,
-      GarbageType.PAPER3,
-      GarbageType.PAPER4,
-      // Metal garbage types
-      GarbageType.METAL1,
-      GarbageType.METAL2,
-      GarbageType.METAL3,
-      GarbageType.METAL4,
-      // Glass garbage types
-      GarbageType.GLASS1,
-      GarbageType.GLASS2,
-      GarbageType.GLASS3,
-      GarbageType.GLASS4,
-      // General garbage types
-      GarbageType.GENERAL1,
-      GarbageType.GENERAL2,
-      GarbageType.GENERAL3,
-      GarbageType.GENERAL4,
-    ];
-
     // Choose a random garbage type
-    const randomIndex = Math.floor(Math.random() * garbageTypes.length);
-    const garbageType = garbageTypes[randomIndex];
+    const typeIndex = Math.floor(Math.random() * GarbageManager.GARBAGE_TYPES.length);
+    const garbageType = GarbageManager.GARBAGE_TYPES[typeIndex];
+
+    // Choose a random variant (0 to VARIANTS_PER_TYPE-1)
+    const frameId = Math.floor(Math.random() * GarbageManager.VARIANTS_PER_TYPE);
 
     // Find the first available position
     const finalX = this.findNextAvailablePosition();
@@ -108,7 +91,8 @@ export class GarbageManager {
       this.scene,
       finalX,
       this.scene.cameras.main.height + 50, // Start from below screen
-      garbageType
+      garbageType,
+      frameId
     );
 
     // Play entry animation to final position

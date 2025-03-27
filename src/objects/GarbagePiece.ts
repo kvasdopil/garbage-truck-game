@@ -1,56 +1,17 @@
 import Phaser from 'phaser';
 import { BinType } from './GarbageBin';
 
-export enum GarbageType {
-  FOOD1 = 'food1',
-  FOOD2 = 'food2',
-  FOOD3 = 'food3',
-  FOOD4 = 'food4',
-  PLASTIC1 = 'plastic1',
-  PLASTIC2 = 'plastic2',
-  PLASTIC3 = 'plastic3',
-  PLASTIC4 = 'plastic4',
-  PAPER1 = 'paper1',
-  PAPER2 = 'paper2',
-  PAPER3 = 'paper3',
-  PAPER4 = 'paper4',
-  METAL1 = 'metal1',
-  METAL2 = 'metal2',
-  METAL3 = 'metal3',
-  METAL4 = 'metal4',
-  GLASS1 = 'glass1',
-  GLASS2 = 'glass2',
-  GLASS3 = 'glass3',
-  GLASS4 = 'glass4',
-  GENERAL1 = 'general1',
-  GENERAL2 = 'general2',
-  GENERAL3 = 'general3',
-  GENERAL4 = 'general4',
-}
+// GarbageType is now the same as BinType
+export type GarbageType = BinType;
 
-// Map of which bin types accept which garbage types
-export const GARBAGE_ACCEPTANCE_MAP: Record<BinType, GarbageType[]> = {
-  [BinType.GENERIC]: [
-    // Only generic bin accepts general garbage
-    GarbageType.GENERAL1,
-    GarbageType.GENERAL2,
-    GarbageType.GENERAL3,
-    GarbageType.GENERAL4,
-  ],
-  [BinType.PLASTIC]: [
-    GarbageType.PLASTIC1,
-    GarbageType.PLASTIC2,
-    GarbageType.PLASTIC3,
-    GarbageType.PLASTIC4,
-  ],
-  [BinType.FOOD]: [GarbageType.FOOD1, GarbageType.FOOD2, GarbageType.FOOD3, GarbageType.FOOD4],
-  [BinType.METAL]: [GarbageType.METAL1, GarbageType.METAL2, GarbageType.METAL3, GarbageType.METAL4],
-  [BinType.GLASS]: [GarbageType.GLASS1, GarbageType.GLASS2, GarbageType.GLASS3, GarbageType.GLASS4],
-  [BinType.PAPER]: [GarbageType.PAPER1, GarbageType.PAPER2, GarbageType.PAPER3, GarbageType.PAPER4],
-};
+// Helper function to get the texture name for a garbage type
+function getTextureForType(type: GarbageType): string {
+  return `garbage-${type.toLowerCase()}`;
+}
 
 export class GarbagePiece extends Phaser.GameObjects.Sprite {
   private garbageType: GarbageType;
+  private frameId: number;
   private originalPosition: { x: number; y: number };
   private pieceScale: number = 1;
 
@@ -61,149 +22,15 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
     bounceHeight: 20, // pixels
   };
 
-  constructor(scene: Phaser.Scene, x: number, y: number, type: GarbageType) {
-    // For food and plastic items, use the spritesheet with frame index
-    let texture: string = type as string;
-    let frame = undefined;
-
-    if (
-      type === GarbageType.FOOD1 ||
-      type === GarbageType.FOOD2 ||
-      type === GarbageType.FOOD3 ||
-      type === GarbageType.FOOD4
-    ) {
-      // Map food types to frame indices (0-based)
-      texture = 'garbage-food';
-      switch (type) {
-        case GarbageType.FOOD1:
-          frame = 0;
-          break;
-        case GarbageType.FOOD2:
-          frame = 1;
-          break;
-        case GarbageType.FOOD3:
-          frame = 2;
-          break;
-        case GarbageType.FOOD4:
-          frame = 3;
-          break;
-      }
-    } else if (
-      type === GarbageType.PLASTIC1 ||
-      type === GarbageType.PLASTIC2 ||
-      type === GarbageType.PLASTIC3 ||
-      type === GarbageType.PLASTIC4
-    ) {
-      // Map plastic types to frame indices (0-based)
-      texture = 'garbage-plastic';
-      switch (type) {
-        case GarbageType.PLASTIC1:
-          frame = 0;
-          break;
-        case GarbageType.PLASTIC2:
-          frame = 1;
-          break;
-        case GarbageType.PLASTIC3:
-          frame = 2;
-          break;
-        case GarbageType.PLASTIC4:
-          frame = 3;
-          break;
-      }
-    } else if (
-      type === GarbageType.PAPER1 ||
-      type === GarbageType.PAPER2 ||
-      type === GarbageType.PAPER3 ||
-      type === GarbageType.PAPER4
-    ) {
-      // Map paper types to frame indices (0-based)
-      texture = 'garbage-paper';
-      switch (type) {
-        case GarbageType.PAPER1:
-          frame = 0;
-          break;
-        case GarbageType.PAPER2:
-          frame = 1;
-          break;
-        case GarbageType.PAPER3:
-          frame = 2;
-          break;
-        case GarbageType.PAPER4:
-          frame = 3;
-          break;
-      }
-    } else if (
-      type === GarbageType.METAL1 ||
-      type === GarbageType.METAL2 ||
-      type === GarbageType.METAL3 ||
-      type === GarbageType.METAL4
-    ) {
-      // Map metal types to frame indices (0-based)
-      texture = 'garbage-metal';
-      switch (type) {
-        case GarbageType.METAL1:
-          frame = 0;
-          break;
-        case GarbageType.METAL2:
-          frame = 1;
-          break;
-        case GarbageType.METAL3:
-          frame = 2;
-          break;
-        case GarbageType.METAL4:
-          frame = 3;
-          break;
-      }
-    } else if (
-      type === GarbageType.GLASS1 ||
-      type === GarbageType.GLASS2 ||
-      type === GarbageType.GLASS3 ||
-      type === GarbageType.GLASS4
-    ) {
-      // Map glass types to frame indices (0-based)
-      texture = 'garbage-glass';
-      switch (type) {
-        case GarbageType.GLASS1:
-          frame = 0;
-          break;
-        case GarbageType.GLASS2:
-          frame = 1;
-          break;
-        case GarbageType.GLASS3:
-          frame = 2;
-          break;
-        case GarbageType.GLASS4:
-          frame = 3;
-          break;
-      }
-    } else if (
-      type === GarbageType.GENERAL1 ||
-      type === GarbageType.GENERAL2 ||
-      type === GarbageType.GENERAL3 ||
-      type === GarbageType.GENERAL4
-    ) {
-      // Map general types to frame indices (0-based)
-      texture = 'garbage-general';
-      switch (type) {
-        case GarbageType.GENERAL1:
-          frame = 0;
-          break;
-        case GarbageType.GENERAL2:
-          frame = 1;
-          break;
-        case GarbageType.GENERAL3:
-          frame = 2;
-          break;
-        case GarbageType.GENERAL4:
-          frame = 3;
-          break;
-      }
-    }
+  constructor(scene: Phaser.Scene, x: number, y: number, type: GarbageType, frameId: number) {
+    // Get the appropriate texture for this garbage type
+    const texture = getTextureForType(type);
 
     // Call super with appropriate texture and frame
-    super(scene, x, y, texture, frame);
+    super(scene, x, y, texture, frameId);
 
     this.garbageType = type;
+    this.frameId = frameId;
     this.originalPosition = { x, y };
 
     // Initialize the garbage piece
@@ -219,6 +46,13 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
    */
   getType(): GarbageType {
     return this.garbageType;
+  }
+
+  /**
+   * Get the frame ID (variant) of this garbage piece
+   */
+  getFrameId(): number {
+    return this.frameId;
   }
 
   /**
@@ -356,7 +190,7 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
    * Check if this garbage type is accepted by the given bin type
    */
   isAcceptedBy(binType: BinType): boolean {
-    return GARBAGE_ACCEPTANCE_MAP[binType].includes(this.garbageType);
+    return binType === this.garbageType;
   }
 
   /**

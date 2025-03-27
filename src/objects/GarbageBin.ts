@@ -2,13 +2,22 @@ import Phaser from 'phaser';
 import { DropZone } from './DropZone';
 
 export enum BinType {
-  PLASTIC = 'plastic',
-  FOOD = 'food',
-  GENERIC = 'generic',
-  METAL = 'metal',
-  GLASS = 'glass',
-  PAPER = 'paper',
+  PLASTIC = 'PLASTIC',
+  FOOD = 'FOOD',
+  GENERAL = 'GENERAL',
+  METAL = 'METAL',
+  GLASS = 'GLASS',
+  PAPER = 'PAPER',
 }
+
+const BIN_TEXTURES = {
+  [BinType.PLASTIC]: ['bin-plastic-empty', 'bin-plastic-full'],
+  [BinType.FOOD]: ['bin-food-empty', 'bin-food-full'],
+  [BinType.GENERAL]: ['bin-green', 'bin-green-full'],
+  [BinType.METAL]: ['bin-metal-empty', 'bin-metal-full'],
+  [BinType.GLASS]: ['bin-glass-empty', 'bin-glass-full'],
+  [BinType.PAPER]: ['bin-paper-empty', 'bin-paper-full'],
+};
 
 export class GarbageBin extends Phaser.GameObjects.Sprite {
   private binType: BinType;
@@ -53,21 +62,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
   }
 
   static getTextureForType(type: BinType, isEmpty: boolean): string {
-    switch (type) {
-      case BinType.PLASTIC:
-        return isEmpty ? 'bin-plastic-empty' : 'bin-plastic-full';
-      case BinType.FOOD:
-        return isEmpty ? 'bin-food-empty' : 'bin-food-full';
-      case BinType.METAL:
-        return isEmpty ? 'bin-metal-empty' : 'bin-metal-full';
-      case BinType.GLASS:
-        return isEmpty ? 'bin-glass-empty' : 'bin-glass-full';
-      case BinType.PAPER:
-        return isEmpty ? 'bin-paper-empty' : 'bin-paper-full';
-      case BinType.GENERIC:
-      default:
-        return isEmpty ? 'bin-green' : 'bin-green-full';
-    }
+    return BIN_TEXTURES[type][isEmpty ? 0 : 1];
   }
 
   /**

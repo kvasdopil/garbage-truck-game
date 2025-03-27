@@ -255,7 +255,7 @@ export class GameScene extends Phaser.Scene {
       BinType.METAL,
       BinType.GLASS,
       BinType.PAPER,
-      BinType.GENERIC,
+      BinType.GENERAL,
     ];
 
     for (let i = 0; i < 6; i++) {
