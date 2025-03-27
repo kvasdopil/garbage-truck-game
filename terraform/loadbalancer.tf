@@ -17,6 +17,20 @@ resource "google_compute_backend_bucket" "default" {
   name        = "${var.subdomain}-backend"
   bucket_name = var.bucket_name
   enable_cdn  = true
+  
+  # Add cache control settings
+  cdn_policy {
+    cache_mode        = "CACHE_ALL_STATIC"
+    client_ttl        = 3600  # 1 hour client-side caching
+    default_ttl       = 3600  # 1 hour default TTL
+    max_ttl           = 86400 # 24 hours maximum TTL
+    negative_caching  = true
+    
+    # Force cache revalidation for html files
+    cache_key_policy {
+      include_http_headers = ["X-Requested-With"]
+    }
+  }
 }
 
 # URL map to route requests to the backend
