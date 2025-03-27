@@ -29,7 +29,8 @@ export class DropZone extends Phaser.GameObjects.Zone {
     if (type === ZoneType.TRUCK) {
       this.icon = scene.add.sprite(x, y, 'drop-zone-icon');
       this.icon.setDepth(1); // Make sure it appears above the background
-      this.icon.setAlpha(0.2);
+      this.icon.setAlpha(0.5);
+      this.icon.setBlendMode(Phaser.BlendModes.ADD);
       this.icon.setFlipX(true);
 
       // Add a subtle floating animation

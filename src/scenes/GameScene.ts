@@ -44,6 +44,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload() {
+    // Load background
+    this.load.image('background', 'textures/background.png');
+
     // Load assets from public directory
     this.load.image('truck', 'textures/truck.png');
     this.load.image('bin-green', 'textures/bin-green.png'); // Empty bin
@@ -56,6 +59,10 @@ export class GameScene extends Phaser.Scene {
     this.load.image('bin-plastic-full', 'textures/bin-plastic-full.png'); // Full plastic bin
     this.load.image('bin-food-empty', 'textures/bin-food-empty.png'); // Empty food bin
     this.load.image('bin-food-full', 'textures/bin-food-full.png'); // Full food bin
+    this.load.image('bin-metal-empty', 'textures/bin-metal-empty.png'); // Empty metal bin
+    this.load.image('bin-metal-full', 'textures/bin-metal-full.png'); // Full metal bin
+    this.load.image('bin-glass-empty', 'textures/bin-glass-empty.png'); // Empty glass bin
+    this.load.image('bin-glass-full', 'textures/bin-glass-full.png'); // Full glass bin
 
     // Load icons spritesheet (2x2 grid with star, flag, cup, go)
     this.load.spritesheet('icons', 'textures/icons.png', {
@@ -85,18 +92,46 @@ export class GameScene extends Phaser.Scene {
       spacing: 0,
     });
 
+    // Load metal garbage as spritesheet (2x2 grid)
+    this.load.spritesheet('garbage-metal', 'textures/garbage-metal.png', {
+      frameWidth: 128,
+      frameHeight: 128,
+      spacing: 0,
+    });
+
+    // Load glass garbage as spritesheet (2x2 grid)
+    this.load.spritesheet('garbage-glass', 'textures/garbage-glass.png', {
+      frameWidth: 128,
+      frameHeight: 128,
+      spacing: 0,
+    });
+
     this.load.image('drop-zone-icon', 'textures/drop-zone-icon.png'); // Drop zone icon
   }
 
   create() {
+    // Add the background image first so it's behind everything else
+    const bg = this.add.image(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      'background'
+    );
+
+    // Scale the background to cover the entire screen while maintaining aspect ratio
+    const scaleX = this.cameras.main.width / bg.width;
+    const scaleY = this.cameras.main.height / bg.height;
+    const scale = Math.max(scaleX, scaleY);
+    bg.setScale(scale);
+    bg.setDepth(-2); // Set depth lower than the home dock background
+
     // Create a light grey background for the home drop zone area
     const homeDockBg = this.add.rectangle(
       this.cameras.main.width, // Same x position as home zones
       this.cameras.main.height / 2, // Center of the screen
       this.cameras.main.width * 0.7, // Width of background
       this.cameras.main.height, // Full height of screen
-      0xcccccc, // Light grey color
-      0.5 // Alpha (transparency)
+      0xdec7a0, // Yellow-ish biege color
+      1.0 // Alpha (transparency)
     );
     homeDockBg.setDepth(-1); // Place behind other elements
 
@@ -106,7 +141,7 @@ export class GameScene extends Phaser.Scene {
     // Create the truck sprite
     this.truck = this.add.sprite(
       this.cameras.main.width * 0.25, // Left third of screen
-      this.cameras.main.height / 2,
+      this.cameras.main.height * 0.6, // Move down to 70% of screen height
       'truck'
     );
 
@@ -133,37 +168,41 @@ export class GameScene extends Phaser.Scene {
     this.truckDropZone = new DropZone(
       this,
       this.cameras.main.width * 0.25 + this.truck.width * 0.5 + zoneWidth * 0.5, // Right side of truck
-      this.cameras.main.height / 2, // Same y as truck
+      this.cameras.main.height * 0.65, // Same y as truck (70% of screen height)
       zoneWidth,
       zoneHeight,
       ZoneType.TRUCK
     );
 
-    // Create three home drop zones (top, middle, bottom)
-    const homePositionsY = [
-      this.cameras.main.height * 0.2, // Top (moved up)
-      this.cameras.main.height * 0.5, // Middle (unchanged)
-      this.cameras.main.height * 0.8, // Bottom (moved down)
-    ];
+    // Create six home drop zones in a 2x3 grid
+    const gridColumns = 2;
+    const gridRows = 3;
+    const startX = this.cameras.main.width * 0.75; // Left column
+    const spacing = zoneWidth * 1.5; // Space between columns
 
-    for (const posY of homePositionsY) {
-      const homeZone = new DropZone(
-        this,
-        this.cameras.main.width * 0.75, // Right side of screen
-        posY,
-        zoneWidth,
-        zoneHeight,
-        ZoneType.HOME
-      );
-      this.homeDropZones.push(homeZone);
+    for (let row = 0; row < gridRows; row++) {
+      for (let col = 0; col < gridColumns; col++) {
+        const posX = startX + col * spacing;
+        const posY = this.cameras.main.height * (0.25 + row * 0.25); // Distribute vertically
+
+        const homeZone = new DropZone(this, posX, posY, zoneWidth, zoneHeight, ZoneType.HOME);
+        this.homeDropZones.push(homeZone);
+      }
     }
   }
 
   private createBins(): void {
-    // Create the 3 bin sprites at each home position
-    const binTypes = [BinType.PLASTIC, BinType.FOOD, BinType.GENERIC];
+    // Create 6 bins: 1 plastic, 1 food, 1 metal, 1 glass, and 2 generic bins
+    const binTypes = [
+      BinType.PLASTIC,
+      BinType.FOOD,
+      BinType.METAL,
+      BinType.GLASS,
+      BinType.GENERIC,
+      BinType.GENERIC,
+    ];
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       const bin = new GarbageBin(
         this,
         this.homeDropZones[i].x,

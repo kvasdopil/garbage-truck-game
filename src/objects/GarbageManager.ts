@@ -5,14 +5,14 @@ export class GarbageManager {
   private scene: Phaser.Scene;
   private garbagePieces: GarbagePiece[] = [];
   //private garbageTimer!: Phaser.Time.TimerEvent;
-  private maxGarbagePieces: number = 3;
+  private maxGarbagePieces: number = 5;
   private isDragging: boolean = false;
   private spawnInterval: number = 3000; // 3 seconds
 
   // Garbage animation params
   private garbageAnimParams = {
-    yPosition: 60, // Y-position for garbage pieces
-    spacing: 120, // Horizontal spacing between garbage pieces (increased from 100)
+    yPosition: 80, // Y-position for garbage pieces (increased from 120 to move down)
+    spacing: 120, // Horizontal spacing between garbage pieces
   };
 
   constructor(scene: Phaser.Scene) {
@@ -75,6 +75,16 @@ export class GarbageManager {
       GarbageType.PAPER2,
       GarbageType.PAPER3,
       GarbageType.PAPER4,
+      // Metal garbage types
+      GarbageType.METAL1,
+      GarbageType.METAL2,
+      GarbageType.METAL3,
+      GarbageType.METAL4,
+      // Glass garbage types
+      GarbageType.GLASS1,
+      GarbageType.GLASS2,
+      GarbageType.GLASS3,
+      GarbageType.GLASS4,
     ];
 
     // Choose a random garbage type
@@ -85,16 +95,19 @@ export class GarbageManager {
     const finalX = this.findNextAvailablePosition();
     if (finalX === null) return; // No available spots
 
-    // Create the garbage piece
+    // Calculate final Y position from bottom of screen
+    const finalY = this.scene.cameras.main.height - this.garbageAnimParams.yPosition;
+
+    // Create the garbage piece starting from below the screen
     const garbage = new GarbagePiece(
       this.scene,
       finalX,
-      this.garbageAnimParams.yPosition,
+      this.scene.cameras.main.height + 50, // Start from below screen
       garbageType
     );
 
-    // Play entry animation
-    garbage.playEntryAnimation(this.garbageAnimParams.yPosition);
+    // Play entry animation to final position
+    garbage.playEntryAnimation(finalY);
 
     // Add to tracked pieces
     this.garbagePieces.push(garbage);
@@ -105,7 +118,7 @@ export class GarbageManager {
    */
   private findNextAvailablePosition(): number | null {
     // Define the positions where garbage can be placed
-    const baseX = this.scene.cameras.main.width * 0.2;
+    const baseX = this.scene.cameras.main.width * 0.1; // Moved from 0.2 to 0.15 to shift left
     const totalPositions = this.maxGarbagePieces;
 
     // Create an array of all possible positions

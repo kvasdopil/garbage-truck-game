@@ -14,6 +14,14 @@ export enum GarbageType {
   PAPER2 = 'paper2',
   PAPER3 = 'paper3',
   PAPER4 = 'paper4',
+  METAL1 = 'metal1',
+  METAL2 = 'metal2',
+  METAL3 = 'metal3',
+  METAL4 = 'metal4',
+  GLASS1 = 'glass1',
+  GLASS2 = 'glass2',
+  GLASS3 = 'glass3',
+  GLASS4 = 'glass4',
 }
 
 // Map of which bin types accept which garbage types
@@ -31,6 +39,8 @@ export const GARBAGE_ACCEPTANCE_MAP: Record<BinType, GarbageType[]> = {
     GarbageType.PLASTIC4,
   ],
   [BinType.FOOD]: [GarbageType.FOOD1, GarbageType.FOOD2, GarbageType.FOOD3, GarbageType.FOOD4],
+  [BinType.METAL]: [GarbageType.METAL1, GarbageType.METAL2, GarbageType.METAL3, GarbageType.METAL4],
+  [BinType.GLASS]: [GarbageType.GLASS1, GarbageType.GLASS2, GarbageType.GLASS3, GarbageType.GLASS4],
 };
 
 export class GarbagePiece extends Phaser.GameObjects.Sprite {
@@ -113,6 +123,50 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
           frame = 2;
           break;
         case GarbageType.PAPER4:
+          frame = 3;
+          break;
+      }
+    } else if (
+      type === GarbageType.METAL1 ||
+      type === GarbageType.METAL2 ||
+      type === GarbageType.METAL3 ||
+      type === GarbageType.METAL4
+    ) {
+      // Map metal types to frame indices (0-based)
+      texture = 'garbage-metal';
+      switch (type) {
+        case GarbageType.METAL1:
+          frame = 0;
+          break;
+        case GarbageType.METAL2:
+          frame = 1;
+          break;
+        case GarbageType.METAL3:
+          frame = 2;
+          break;
+        case GarbageType.METAL4:
+          frame = 3;
+          break;
+      }
+    } else if (
+      type === GarbageType.GLASS1 ||
+      type === GarbageType.GLASS2 ||
+      type === GarbageType.GLASS3 ||
+      type === GarbageType.GLASS4
+    ) {
+      // Map glass types to frame indices (0-based)
+      texture = 'garbage-glass';
+      switch (type) {
+        case GarbageType.GLASS1:
+          frame = 0;
+          break;
+        case GarbageType.GLASS2:
+          frame = 1;
+          break;
+        case GarbageType.GLASS3:
+          frame = 2;
+          break;
+        case GarbageType.GLASS4:
           frame = 3;
           break;
       }
@@ -239,13 +293,10 @@ export class GarbagePiece extends Phaser.GameObjects.Sprite {
   }
 
   /**
-   * Play the entry animation from top of screen
+   * Play the entry animation from bottom of screen
    */
   playEntryAnimation(finalY: number): void {
-    // Start from above the screen
-    this.y = -50;
-
-    // Animate entry
+    // Simple animation from bottom to final position
     this.scene.tweens.add({
       targets: this,
       y: finalY,

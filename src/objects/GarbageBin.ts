@@ -5,6 +5,8 @@ export enum BinType {
   PLASTIC = 'plastic',
   FOOD = 'food',
   GENERIC = 'generic',
+  METAL = 'metal',
+  GLASS = 'glass',
 }
 
 export class GarbageBin extends Phaser.GameObjects.Sprite {
@@ -55,6 +57,10 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
         return isEmpty ? 'bin-plastic-empty' : 'bin-plastic-full';
       case BinType.FOOD:
         return isEmpty ? 'bin-food-empty' : 'bin-food-full';
+      case BinType.METAL:
+        return isEmpty ? 'bin-metal-empty' : 'bin-metal-full';
+      case BinType.GLASS:
+        return isEmpty ? 'bin-glass-empty' : 'bin-glass-full';
       case BinType.GENERIC:
       default:
         return isEmpty ? 'bin-green' : 'bin-green-full';
