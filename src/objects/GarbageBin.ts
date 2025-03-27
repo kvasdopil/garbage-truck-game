@@ -27,7 +27,7 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
     holdDuration: 500, // ms
     returnDuration: 400, // ms
     easeFunction: 'Power1',
-    pivotOrigin: { x: 0, y: 1 }, // Bottom left corner pivot
+    pivotOrigin: { x: 0.1, y: 0.65 }, // Bottom left corner pivot
   };
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: BinType) {
@@ -322,20 +322,21 @@ export class GarbageBin extends Phaser.GameObjects.Sprite {
     // Remove bin from scene temporarily
     this.setVisible(false);
 
-    // Create container at the bin's position
-    const animContainer = this.scene.add.container(originalX, originalY);
+    // Create a container at the pivot point position
+    const width = this.width * this.scale;
+    const height = this.height * this.scale;
+    const pivotX = originalX - width * (0.5 - this.tippingAnimParams.pivotOrigin.x);
+    const pivotY = originalY + height * (0.5 - this.tippingAnimParams.pivotOrigin.y);
 
-    // Create a clone of the bin for animation
-    const animBin = this.scene.add.sprite(0, 0, this.texture.key);
-    animBin.setScale(1.0);
+    const animContainer = this.scene.add.container(pivotX, pivotY);
 
-    // Offset the bin within the container to rotate around bottom-left corner
-    const width = animBin.width * 1.0;
-    const height = animBin.height * 1.0;
-    animBin.x = width * this.tippingAnimParams.pivotOrigin.x;
-    animBin.y = -height * (1 - this.tippingAnimParams.pivotOrigin.y);
-
-    // Add the bin to the container
+    // Create a clone of the bin for animation, positioned relative to pivot
+    const animBin = this.scene.add.sprite(
+      width * (0.5 - this.tippingAnimParams.pivotOrigin.x),
+      height * (this.tippingAnimParams.pivotOrigin.y - 0.5),
+      this.texture.key
+    );
+    animBin.setScale(this.scale);
     animContainer.add(animBin);
 
     // Create tipping animation sequence for the container

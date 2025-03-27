@@ -28,7 +28,7 @@ export class DropZone extends Phaser.GameObjects.Zone {
     // Create icon for truck zone
     if (type === ZoneType.TRUCK) {
       this.icon = scene.add.sprite(x, y, 'drop-zone-icon');
-      this.icon.setDepth(1); // Make sure it appears above the background
+      this.icon.setDepth(0); // Make sure icon appears above background but below truck
       this.icon.setAlpha(0.5);
       this.icon.setBlendMode(Phaser.BlendModes.ADD);
       this.icon.setFlipX(true);
@@ -42,6 +42,7 @@ export class DropZone extends Phaser.GameObjects.Zone {
     // Enable physics
     scene.physics.world.enable(this, Phaser.Physics.Arcade.STATIC_BODY);
     scene.add.existing(this);
+    this.setDepth(0); // Set zone to be at same level as its icon
 
     // Set initial visibility
     this.updateIconVisibility();

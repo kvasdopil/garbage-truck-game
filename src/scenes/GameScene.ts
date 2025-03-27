@@ -116,6 +116,13 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.load.image('drop-zone-icon', 'textures/drop-zone-icon.png'); // Drop zone icon
+
+    // Load fullscreen toggle icon
+    this.load.spritesheet('icons2', 'textures/icons2.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+      spacing: 0,
+    });
   }
 
   create() {
@@ -153,6 +160,7 @@ export class GameScene extends Phaser.Scene {
       this.cameras.main.height * 0.6, // Move down to 70% of screen height
       'truck'
     );
+    this.truck.setDepth(1); // Set truck to be above drop zones
 
     // Create drop zones
     this.createDropZones();
@@ -166,6 +174,41 @@ export class GameScene extends Phaser.Scene {
     // Create garbage manager
     this.garbageManager = new GarbageManager(this);
     this.garbageManager.startSpawning();
+
+    // Add fullscreen button
+    const fullscreenButton = this.add
+      .image(this.cameras.main.width - 16, 16, 'icons2', 0)
+      .setOrigin(1, 0)
+      .setInteractive()
+      .setScrollFactor(0)
+      .setDepth(100);
+
+    // Scale the button appropriately
+    fullscreenButton.setScale(0.75);
+
+    // Toggle fullscreen on click
+    fullscreenButton.on('pointerup', () => {
+      if (this.scale.isFullscreen) {
+        this.scale.stopFullscreen();
+        fullscreenButton.setFrame(0); // Use the non-fullscreen frame
+      } else {
+        this.scale.startFullscreen();
+        fullscreenButton.setFrame(1); // Use the fullscreen frame
+      }
+    });
+
+    // Listen for fullscreen change events
+    this.scale.on('fullscreenunsupported', () => {
+      console.log('Fullscreen not supported on this device');
+    });
+
+    this.scale.on('enterfullscreen', () => {
+      fullscreenButton.setFrame(1);
+    });
+
+    this.scale.on('leavefullscreen', () => {
+      fullscreenButton.setFrame(0);
+    });
   }
 
   private createDropZones(): void {
@@ -177,7 +220,7 @@ export class GameScene extends Phaser.Scene {
     this.truckDropZone = new DropZone(
       this,
       this.cameras.main.width * 0.25 + this.truck.width * 0.5 + zoneWidth * 0.5, // Right side of truck
-      this.cameras.main.height * 0.65, // Same y as truck (70% of screen height)
+      this.cameras.main.height * 0.67, // Same y as truck (70% of screen height)
       zoneWidth,
       zoneHeight,
       ZoneType.TRUCK

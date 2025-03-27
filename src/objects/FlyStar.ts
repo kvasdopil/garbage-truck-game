@@ -40,6 +40,9 @@ export class FlyStar extends Phaser.GameObjects.Sprite {
 
     // Handle click/tap on star
     this.on('pointerdown', this.onStarClicked, this);
+
+    // Set very high depth to ensure stars are always on top
+    this.setDepth(1000);
   }
 
   private flyRandomDirection(): void {
