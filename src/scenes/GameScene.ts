@@ -32,9 +32,10 @@ import { DropZone, ZoneType } from '../objects/DropZone';
 import { GarbageManager } from '../objects/GarbageManager';
 import { ScoreCounter } from '../objects/ScoreCounter';
 import { FlyStar } from '../objects/FlyStar';
+import { GarbageTruck } from '../objects/GarbageTruck';
 
 export class GameScene extends Phaser.Scene {
-  private truck!: Phaser.GameObjects.Sprite;
+  private truck!: GarbageTruck;
   private bins: GarbageBin[] = [];
   private truckDropZone!: DropZone;
   private homeDropZones: DropZone[] = [];
@@ -42,6 +43,9 @@ export class GameScene extends Phaser.Scene {
   private currentAnimatingBin: GarbageBin | null = null;
   private garbageManager!: GarbageManager;
   private scoreCounter!: ScoreCounter;
+  private goButton!: Phaser.GameObjects.Sprite;
+  private garbageCollected: number = 0;
+  private dragStartZone: DropZone | null = null;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -51,8 +55,10 @@ export class GameScene extends Phaser.Scene {
     // Load background
     this.load.image('background', 'textures/background.png');
 
+    // Load truck texture atlas
+    this.load.atlas('truck-general', 'textures/truck-general.png', 'textures/truck-general.json');
+
     // Load assets from public directory
-    this.load.image('truck', 'textures/truck.png');
     this.load.image('bin-green', 'textures/bin-green.png'); // Empty bin
     this.load.image('bin-blue', 'textures/bin-green.png'); // Using same image for now, can be replaced with different colored bins
     this.load.image('bin-yellow', 'textures/bin-green.png'); // Using same image for now
@@ -158,16 +164,19 @@ export class GameScene extends Phaser.Scene {
     // Create the score counter at the top left corner
     this.scoreCounter = new ScoreCounter(this, 50, 50);
 
-    // Create the truck sprite
-    this.truck = this.add.sprite(
+    // Create the truck using the new composite sprite
+    this.truck = new GarbageTruck(
+      this,
       this.cameras.main.width * 0.25, // Left third of screen
-      this.cameras.main.height * 0.6, // Move down to 70% of screen height
-      'truck'
+      this.cameras.main.height * 0.6 // Move down to 70% of screen height
     );
     this.truck.setDepth(1); // Set truck to be above drop zones
 
     // Create drop zones
     this.createDropZones();
+
+    // Initially hide the truck drop zone
+    this.truckDropZone.setVisible(false);
 
     // Create bins
     this.createBins();
@@ -175,9 +184,73 @@ export class GameScene extends Phaser.Scene {
     // Setup input handlers
     this.setupInputHandlers();
 
-    // Create garbage manager
+    // Create garbage manager (starts paused)
     this.garbageManager = new GarbageManager(this);
-    this.garbageManager.startSpawning();
+    this.garbageManager.startSpawning(); // Timer starts but won't spawn due to paused state
+
+    // Create the go button (initially hidden)
+    this.goButton = this.add
+      .sprite(
+        this.truckDropZone.x, // Position at truck drop zone
+        this.truckDropZone.y,
+        'icons',
+        3 // Frame 4 (0-based index) for the 'go' icon
+      )
+      .setInteractive()
+      .setDepth(100)
+      .setScale(1.2)
+      .setVisible(false); // Hide initially
+
+    // Add wobble animation
+    this.add.tween({
+      targets: this.goButton,
+      x: `+=${-10}`, // Move relative to current position
+      duration: 800,
+      ease: 'Cubic.easeIn', // Faster to the left
+      yoyo: true,
+      repeat: -1,
+      repeatDelay: 300, // Small pause between wobbles
+    });
+
+    // Add hover effect
+    this.goButton.on('pointerover', () => {
+      this.goButton.setScale(1.3);
+    });
+
+    this.goButton.on('pointerout', () => {
+      this.goButton.setScale(1.2);
+    });
+
+    // Drive the truck in and enable spawning when it arrives
+    this.truck.driveIn().then(() => {
+      this.garbageManager.resumeSpawning();
+      this.truckDropZone.setVisible(true);
+      this.garbageCollected = 0; // Reset counter when truck arrives
+    });
+
+    // Add click handler for go button
+    this.goButton.on('pointerdown', async () => {
+      if (!this.isAnimating) {
+        this.isAnimating = true;
+        this.goButton.setVisible(false);
+
+        // Hide drop zone and pause garbage spawning
+        this.truckDropZone.setVisible(false);
+        this.garbageManager.pauseSpawning();
+
+        // Drive sequence
+        await this.truck.driveOut();
+        await new Promise(resolve => this.time.delayedCall(1000, resolve));
+        await this.truck.driveIn();
+
+        // Show drop zone and resume garbage spawning
+        this.truckDropZone.setVisible(true);
+        this.garbageManager.resumeSpawning();
+        this.garbageCollected = 0; // Reset counter when truck returns
+
+        this.isAnimating = false;
+      }
+    });
 
     // Add fullscreen button
     const fullscreenButton = this.add
@@ -223,7 +296,7 @@ export class GameScene extends Phaser.Scene {
     // Create truck drop zone
     this.truckDropZone = new DropZone(
       this,
-      this.cameras.main.width * 0.25 + this.truck.width * 0.5 + zoneWidth * 0.5, // Right side of truck
+      this.cameras.main.width * 0.25 + 256 + zoneWidth * 0.5, // Right side of truck
       this.cameras.main.height * 0.67, // Same y as truck (70% of screen height)
       zoneWidth,
       zoneHeight,
@@ -342,6 +415,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleBinDragStart(bin: GarbageBin): void {
+    // Store the starting zone before any drag operations
+    this.dragStartZone = bin.getCurrentZone();
     bin.handleDragStart();
   }
 
@@ -357,6 +432,7 @@ export class GameScene extends Phaser.Scene {
   private async handleBinDragEnd(bin: GarbageBin, pointer: Phaser.Input.Pointer): Promise<void> {
     let droppedInZone = false;
     let targetZone: DropZone | null = null;
+    const wasTruckZone = this.dragStartZone === this.truckDropZone;
 
     // Check if dropped in truck zone
     if (
@@ -366,6 +442,13 @@ export class GameScene extends Phaser.Scene {
       droppedInZone = true;
       targetZone = this.truckDropZone;
 
+      // Double check that the bin's previous zone (if any) is properly cleared
+      for (const zone of [this.truckDropZone, ...this.homeDropZones]) {
+        if (zone !== targetZone && zone.getOccupant() === bin) {
+          zone.setOccupant(null);
+        }
+      }
+
       // Update the bin's position and zone
       bin.setLastValidPosition(targetZone.x, targetZone.y);
 
@@ -373,19 +456,12 @@ export class GameScene extends Phaser.Scene {
       this.isAnimating = true;
       this.currentAnimatingBin = bin;
 
-      // Double check that the bin's previous zone (if any) is properly cleared
-      for (const zone of [this.truckDropZone, ...this.homeDropZones]) {
-        if (zone !== targetZone && zone.getOccupant() === bin) {
-          console.log('Clearing previous zone reference to bin');
-          zone.setOccupant(null);
-        }
-      }
-
       // Define onEmptied callback to spawn flying stars based on garbage count
       const onEmptied = (garbageCount: number) => {
         // Only spawn stars if the bin had garbage
         if (garbageCount > 0) {
           this.spawnFlyStar(garbageCount);
+          this.garbageCollected += garbageCount; // Increment counter when garbage is emptied
         }
       };
 
@@ -399,20 +475,25 @@ export class GameScene extends Phaser.Scene {
           droppedInZone = true;
           targetZone = homeZone;
 
+          // If moving from truck zone, check garbage count
+          if (wasTruckZone && this.garbageCollected >= 10) {
+            this.truckDropZone.setVisible(false);
+            this.goButton.setVisible(true);
+          }
+
+          // Double check that the bin's previous zone (if any) is properly cleared
+          for (const zone of [this.truckDropZone, ...this.homeDropZones]) {
+            if (zone !== targetZone && zone.getOccupant() === bin) {
+              zone.setOccupant(null);
+            }
+          }
+
           // Update the bin's position and zone
           bin.setLastValidPosition(targetZone.x, targetZone.y);
 
           // Set animating flag
           this.isAnimating = true;
           this.currentAnimatingBin = bin;
-
-          // Double check that the bin's previous zone (if any) is properly cleared
-          for (const zone of [this.truckDropZone, ...this.homeDropZones]) {
-            if (zone !== targetZone && zone.getOccupant() === bin) {
-              console.log('Clearing previous zone reference to bin');
-              zone.setOccupant(null);
-            }
-          }
 
           await bin.animateToZone(targetZone, false);
           this.isAnimating = false;
@@ -475,8 +556,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   private cleanupZoneOccupancy(): void {
-    console.log('Running zone occupancy cleanup');
-
     // Check bin-zone consistency first
     for (const bin of this.bins) {
       bin.checkZoneConsistency();
@@ -503,7 +582,6 @@ export class GameScene extends Phaser.Scene {
     for (const [zone, bin] of zoneOccupants.entries()) {
       // If zone's current occupant doesn't match our map, update it
       if (zone.getOccupant() !== bin) {
-        console.log('Fixing zone occupant mismatch', zone, bin);
         zone.setOccupant(bin);
       }
     }
@@ -512,7 +590,6 @@ export class GameScene extends Phaser.Scene {
     for (const bin of this.bins) {
       const zone = bin.getCurrentZone();
       if (zone && zone.getOccupant() !== bin) {
-        console.log('Fixing bin zone reference', bin, zone);
         bin.setCurrentZone(null);
       }
     }

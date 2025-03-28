@@ -71,11 +71,22 @@ export class DropZone extends Phaser.GameObjects.Zone {
   }
 
   /**
+   * Override setVisible to also control icon visibility
+   */
+  setVisible(value: boolean): this {
+    super.setVisible(value);
+    if (this.icon) {
+      this.icon.setVisible(value && !this.isOccupied());
+    }
+    return this;
+  }
+
+  /**
    * Update the visibility of the zone icon based on occupancy
    */
   private updateIconVisibility(): void {
     if (this.icon && this.zoneType === ZoneType.TRUCK) {
-      this.icon.setVisible(!this.isOccupied());
+      this.icon.setVisible(this.visible && !this.isOccupied());
     }
   }
 
@@ -111,6 +122,9 @@ export class DropZone extends Phaser.GameObjects.Zone {
    * Check if a point is inside this zone
    */
   containsPoint(x: number, y: number): boolean {
+    // If zone is not visible, it can't accept drops
+    if (!this.visible) return false;
+
     const body = this.body as Phaser.Physics.Arcade.Body;
     const rect = new Phaser.Geom.Rectangle(body.x, body.y, body.width, body.height);
     return Phaser.Geom.Rectangle.Contains(rect, x, y);

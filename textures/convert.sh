@@ -31,8 +31,12 @@ for file in "$SCRIPT_DIR"/bin-*.png; do
 done
 
 # convert truck.png to 50%
-echo "Converting truck.png to 50%..."
-magick "$SCRIPT_DIR/truck.png" -resize 50% "$TGT_DIR/truck.png"
+echo "Converting truck-*.png to 50%..."
+for file in "$SCRIPT_DIR"/truck-*.png; do
+    filename=$(basename "$file")
+    echo "Converting $filename..."
+    magick "$file" -resize 50% "$TGT_DIR/${filename}"
+done
 
 # convert drop-zone-icon.png to 50%
 echo "Converting drop-zone-icon.png to 20%..."
@@ -44,5 +48,7 @@ magick "$SCRIPT_DIR/icons.png" -resize 12.5% -sharpen 0x1.0 "$TGT_DIR/icons.png"
 
 echo "Converting icons2.png to 12.5%..."
 magick "$SCRIPT_DIR/icons2.png" -resize 12.5% -sharpen 0x1.0 "$TGT_DIR/icons2.png"
+
+cp $SCRIPT_DIR/*.json $TGT_DIR/
 
 echo "Conversion complete!" 

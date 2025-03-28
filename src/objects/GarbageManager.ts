@@ -5,9 +5,10 @@ import { BinType } from './GarbageBin';
 export class GarbageManager {
   private scene: Phaser.Scene;
   private garbagePieces: GarbagePiece[] = [];
-  //private garbageTimer!: Phaser.Time.TimerEvent;
+  private spawnTimer?: Phaser.Time.TimerEvent;
   private maxGarbagePieces: number = 5;
   private isDragging: boolean = false;
+  private isPaused: boolean = true;
   private spawnInterval: number = 3000; // 3 seconds
 
   // Available garbage types
@@ -36,23 +37,43 @@ export class GarbageManager {
   /**
    * Start the garbage spawning system
    */
-  startSpawning(): void {
-    // Start the timer
-    this.scene.time.addEvent({
-      delay: this.spawnInterval,
-      callback: this.spawnRandomGarbage,
+  public startSpawning(): void {
+    // Clear any existing timer
+    this.spawnTimer?.destroy();
+
+    // Create new spawn timer
+    this.spawnTimer = this.scene.time.addEvent({
+      delay: 2000, // Spawn every 2 seconds
+      callback: this.spawnGarbage,
       callbackScope: this,
       loop: true,
     });
+  }
 
-    // Spawn initial garbage immediately
-    this.spawnRandomGarbage();
+  /**
+   * Pause the garbage spawning system
+   */
+  public pauseSpawning(): void {
+    this.isPaused = true;
+    if (this.spawnTimer) {
+      this.spawnTimer.paused = true;
+    }
+  }
+
+  /**
+   * Resume the garbage spawning system
+   */
+  public resumeSpawning(): void {
+    this.isPaused = false;
+    if (this.spawnTimer) {
+      this.spawnTimer.paused = false;
+    }
   }
 
   /**
    * Set the dragging state (to pause spawning when dragging)
    */
-  setDragging(isDragging: boolean): void {
+  public setDragging(isDragging: boolean): void {
     this.isDragging = isDragging;
   }
 
@@ -66,9 +87,14 @@ export class GarbageManager {
   /**
    * Spawn a random piece of garbage
    */
-  private spawnRandomGarbage(): void {
-    // Skip spawning if we're currently dragging something or at max capacity
-    if (this.isDragging || this.garbagePieces.length >= this.maxGarbagePieces) {
+  private spawnGarbage(): void {
+    // Don't spawn if dragging or paused
+    if (this.isDragging || this.isPaused) {
+      return;
+    }
+
+    // Skip spawning if we're at max capacity
+    if (this.garbagePieces.length >= this.maxGarbagePieces) {
       return;
     }
 
@@ -135,10 +161,11 @@ export class GarbageManager {
   /**
    * Remove a garbage piece from management
    */
-  removeGarbagePiece(garbage: GarbagePiece): void {
-    const index = this.garbagePieces.indexOf(garbage);
+  public removeGarbagePiece(piece: GarbagePiece): void {
+    const index = this.garbagePieces.indexOf(piece);
     if (index !== -1) {
       this.garbagePieces.splice(index, 1);
+      piece.destroy();
     }
   }
 }
