@@ -46,8 +46,14 @@ export class GameScene extends Phaser.Scene {
   private goButton!: Phaser.GameObjects.Sprite;
   private garbageCollected: number = 0;
   private dragStartZone: DropZone | null = null;
-  private currentTruckType: string = 'truck-cat';
-  private readonly VERSION: string = '1.2';
+  private currentTruckType: string = 'truck-monster';
+  private readonly truckTypes: string[] = [
+    'truck-general',
+    'truck-cat',
+    'truck-white',
+    'truck-monster',
+  ];
+  private readonly VERSION: string = '1.2.1';
 
   constructor() {
     super({ key: 'GameScene' });
@@ -60,6 +66,8 @@ export class GameScene extends Phaser.Scene {
     // Load truck texture atlas
     this.load.atlas('truck-general', 'textures/truck-general.png', 'textures/truck-general.json');
     this.load.atlas('truck-cat', 'textures/truck-cat.png', 'textures/truck-cat.json');
+    this.load.atlas('truck-white', 'textures/truck-white.png', 'textures/truck-white.json');
+    this.load.atlas('truck-monster', 'textures/truck-monster.png', 'textures/truck-monster.json');
 
     // Load assets from public directory
     this.load.image('bin-green', 'textures/bin-green.png'); // Empty bin
@@ -247,15 +255,16 @@ export class GameScene extends Phaser.Scene {
         await this.truck.driveOut();
         await new Promise(resolve => this.time.delayedCall(1000, resolve));
 
-        // Switch truck type
-        this.currentTruckType =
-          this.currentTruckType === 'truck-general' ? 'truck-cat' : 'truck-general';
+        // Switch to next truck type in the cycle
+        const currentIndex = this.truckTypes.indexOf(this.currentTruckType);
+        const nextIndex = (currentIndex + 1) % this.truckTypes.length;
+        this.currentTruckType = this.truckTypes[nextIndex];
 
         // Destroy old truck and create new one
         this.truck.destroy();
         this.truck = new GarbageTruck(
           this,
-          this.cameras.main.width * 0.25, // Left third of screen
+          this.cameras.main.width * 0.25, // Always start at the same position
           this.cameras.main.height * 0.6, // Move down to 70% of screen height
           this.currentTruckType
         );

@@ -41,6 +41,56 @@ const Trucks: Record<string, Truck> = {
       y: 0,
     },
   },
+  'truck-white': {
+    texture: 'truck-white',
+    body: {
+      sprite: 'body',
+      x: 0,
+      y: 0,
+    },
+    wheels: [
+      {
+        sprite: 'wheel',
+        x: -180,
+        y: 95,
+      },
+      {
+        sprite: 'wheel',
+        x: 10,
+        y: 95,
+      },
+      {
+        sprite: 'wheel',
+        x: 80,
+        y: 95,
+      },
+      {
+        sprite: 'wheel',
+        x: 150,
+        y: 95,
+      },
+    ],
+  },
+  'truck-monster': {
+    texture: 'truck-monster',
+    body: {
+      sprite: 'body',
+      x: 0,
+      y: -30,
+    },
+    wheels: [
+      {
+        sprite: 'wheel',
+        x: -180,
+        y: 95,
+      },
+      {
+        sprite: 'wheel',
+        x: 95,
+        y: 95,
+      },
+    ],
+  },
 };
 
 export class GarbageTruck extends Phaser.GameObjects.Container {
@@ -48,11 +98,10 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
   private truckCaterpillars?: Phaser.GameObjects.Sprite;
   private truckWheels: Phaser.GameObjects.Sprite[] = [];
   // private backWheel: Phaser.GameObjects.Sprite;
-  private frontWheelTween?: Phaser.Tweens.Tween;
-  private backWheelTween?: Phaser.Tweens.Tween;
   private bodyBounceTween?: Phaser.Tweens.Tween;
   private originalBodyY: number = 0;
   private targetX: number;
+  private wheelTweens: Phaser.Tweens.Tween[] = [];
 
   private awayOffsetX: number = 500;
 
@@ -86,15 +135,6 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
       });
     }
 
-    // // Create wheels using the atlas frame
-    // this.backWheel = scene.add.sprite(90, 95, 'truck-general', 'truck-wheel');
-    // this.frontWheel = scene.add.sprite(-125, 95, 'truck-general', 'truck-wheel');
-    // this.truckBody = scene.add.sprite(0, 0, 'truck-general', 'truck-body');
-
-    // Create wheels using the atlas frame
-    // this.truckCaterpillars = scene.add.sprite(90, 80, 'truck-cat', 'caterpillars');
-    // this.truckBody = scene.add.sprite(0, 0, 'truck-cat', 'body');
-
     // Store original y position of the body for bouncing
     this.originalBodyY = this.truckBody?.y ?? 0;
 
@@ -113,15 +153,6 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
         this.add(wheel);
       });
     }
-
-    // this.backWheel.setDepth(1); // Wheels in front
-    // this.frontWheel.setDepth(1); // Wheels in front
-
-    // Add all parts to the container
-    // this.add(this.truckBody);
-    // this.add(this.truckCaterpillars);
-    // this.add(this.frontWheel);
-
     // Add container to the scene
     scene.add.existing(this);
   }
@@ -169,13 +200,16 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
   public animateWheels(direction: number) {
     if (direction === 0) {
       // Stop all animations
-      this.frontWheelTween?.stop();
-      this.backWheelTween?.stop();
+      this.wheelTweens.forEach(tween => tween.stop());
       this.bodyBounceTween?.stop();
 
       // Reset positions and rotations
-      // this.frontWheel.rotation = 0;
-      // this.backWheel.rotation = 0;
+      if (this.truckWheels) {
+        this.truckWheels.forEach(wheel => {
+          wheel.rotation = 0;
+        });
+      }
+
       if (this.truckBody) {
         this.truckBody.y = this.originalBodyY;
       }
@@ -183,26 +217,22 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     }
 
     // Stop existing tweens if they exist
-    this.frontWheelTween?.stop();
-    this.backWheelTween?.stop();
+    this.wheelTweens.forEach(tween => tween.stop());
     this.bodyBounceTween?.stop();
 
-    // // Create new tweens for continuous rotation
-    // this.frontWheelTween = this.scene.add.tween({
-    //   targets: this.frontWheel,
-    //   rotation: { from: 0, to: direction * Math.PI * 2 },
-    //   duration: 1000, // One full rotation per second
-    //   repeat: -1, // Repeat indefinitely
-    //   ease: 'Linear',
-    // });
-
-    // this.backWheelTween = this.scene.add.tween({
-    //   targets: this.backWheel,
-    //   rotation: { from: 0, to: direction * Math.PI * 2 },
-    //   duration: 1000, // One full rotation per second
-    //   repeat: -1, // Repeat indefinitely
-    //   ease: 'Linear',
-    // });
+    // create new tweens for continuous rotation for all wheels
+    if (this.truckWheels) {
+      this.truckWheels.forEach(wheel => {
+        const tween = this.scene.add.tween({
+          targets: wheel,
+          rotation: { from: 0, to: direction * Math.PI * 2 },
+          duration: 1000, // One full rotation per second
+          repeat: -1, // Repeat indefinitely
+          ease: 'Linear',
+        });
+        this.wheelTweens.push(tween);
+      });
+    }
 
     // Add bouncing animation to the truck body
     this.bodyBounceTween = this.scene.add.tween({

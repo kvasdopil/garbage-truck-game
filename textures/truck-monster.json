@@ -1,0 +1,14 @@
+{
+  "frames": {
+    "body": {
+      "frame": { "x": 0, "y": 0, "w": 512, "h": 256 }
+    },
+    "wheel": {
+      "frame": { "x": 0, "y": 256, "w": 265, "h": 265 }
+    }
+  },
+  "meta": {
+    "image": "truck-general.png",
+    "size": { "w": 512, "h": 512 }
+  }
+}
