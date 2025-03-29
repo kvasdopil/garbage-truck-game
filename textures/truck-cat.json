@@ -3,12 +3,12 @@
     "body": {
       "frame": { "x": 0, "y": 0, "w": 512, "h": 256 }
     },
-    "wheel": {
-      "frame": { "x": 0, "y": 384, "w": 128, "h": 128 }
+    "caterpillars": {
+      "frame": { "x": 0, "y": 384, "w": 512, "h": 128 }
     }
   },
   "meta": {
-    "image": "truck-general.png",
+    "image": "truck-cat.png",
     "size": { "w": 512, "h": 512 }
   }
 }

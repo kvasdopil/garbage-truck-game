@@ -46,6 +46,7 @@ export class GameScene extends Phaser.Scene {
   private goButton!: Phaser.GameObjects.Sprite;
   private garbageCollected: number = 0;
   private dragStartZone: DropZone | null = null;
+  private currentTruckType: string = 'truck-general';
 
   constructor() {
     super({ key: 'GameScene' });
@@ -57,6 +58,7 @@ export class GameScene extends Phaser.Scene {
 
     // Load truck texture atlas
     this.load.atlas('truck-general', 'textures/truck-general.png', 'textures/truck-general.json');
+    this.load.atlas('truck-cat', 'textures/truck-cat.png', 'textures/truck-cat.json');
 
     // Load assets from public directory
     this.load.image('bin-green', 'textures/bin-green.png'); // Empty bin
@@ -164,11 +166,12 @@ export class GameScene extends Phaser.Scene {
     // Create the score counter at the top left corner
     this.scoreCounter = new ScoreCounter(this, 50, 50);
 
-    // Create the truck using the new composite sprite
+    // Create the truck using the current truck type
     this.truck = new GarbageTruck(
       this,
       this.cameras.main.width * 0.25, // Left third of screen
-      this.cameras.main.height * 0.6 // Move down to 70% of screen height
+      this.cameras.main.height * 0.6, // Move down to 70% of screen height
+      this.currentTruckType
     );
     this.truck.setDepth(1); // Set truck to be above drop zones
 
@@ -242,6 +245,21 @@ export class GameScene extends Phaser.Scene {
         // Drive sequence
         await this.truck.driveOut();
         await new Promise(resolve => this.time.delayedCall(1000, resolve));
+
+        // Switch truck type
+        this.currentTruckType =
+          this.currentTruckType === 'truck-general' ? 'truck-cat' : 'truck-general';
+
+        // Destroy old truck and create new one
+        this.truck.destroy();
+        this.truck = new GarbageTruck(
+          this,
+          this.cameras.main.width * 0.25, // Left third of screen
+          this.cameras.main.height * 0.6, // Move down to 70% of screen height
+          this.currentTruckType
+        );
+        this.truck.setDepth(1);
+
         await this.truck.driveIn();
 
         // Show drop zone and resume garbage spawning

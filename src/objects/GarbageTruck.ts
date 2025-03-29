@@ -1,41 +1,128 @@
 import Phaser from 'phaser';
 
+type Truck = {
+  texture: string;
+  wheels?: { sprite: string; x: number; y: number }[];
+  body: { sprite: string; x: number; y: number };
+  caterpillars?: { sprite: string; x: number; y: number };
+};
+
+const Trucks: Record<string, Truck> = {
+  'truck-general': {
+    texture: 'truck-general',
+    wheels: [
+      {
+        sprite: 'wheel',
+        x: 90,
+        y: 95,
+      },
+      {
+        sprite: 'wheel',
+        x: -125,
+        y: 95,
+      },
+    ],
+    body: {
+      sprite: 'body',
+      x: 0,
+      y: 0,
+    },
+  },
+  'truck-cat': {
+    texture: 'truck-cat',
+    caterpillars: {
+      sprite: 'caterpillars',
+      x: 90,
+      y: 80,
+    },
+    body: {
+      sprite: 'body',
+      x: 0,
+      y: 0,
+    },
+  },
+};
+
 export class GarbageTruck extends Phaser.GameObjects.Container {
-  private truckBody: Phaser.GameObjects.Sprite;
-  private frontWheel: Phaser.GameObjects.Sprite;
-  private backWheel: Phaser.GameObjects.Sprite;
+  private truckBody?: Phaser.GameObjects.Sprite;
+  private truckCaterpillars?: Phaser.GameObjects.Sprite;
+  private truckWheels: Phaser.GameObjects.Sprite[] = [];
+  // private backWheel: Phaser.GameObjects.Sprite;
   private frontWheelTween?: Phaser.Tweens.Tween;
   private backWheelTween?: Phaser.Tweens.Tween;
   private bodyBounceTween?: Phaser.Tweens.Tween;
   private originalBodyY: number = 0;
   private targetX: number;
+  private truckType: keyof typeof Trucks;
 
   private awayOffsetX: number = 500;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  constructor(scene: Phaser.Scene, x: number, y: number, truckType: keyof typeof Trucks) {
     super(scene, x, y);
 
     // Store target position
+    this.truckType = truckType;
     this.targetX = x;
     this.setPosition(this.targetX - this.awayOffsetX, y);
 
+    const truck = Trucks[truckType];
+    if (truck.body) {
+      this.truckBody = scene.add.sprite(
+        truck.body.x,
+        truck.body.y,
+        truck.texture,
+        truck.body.sprite
+      );
+    }
+    if (truck.caterpillars) {
+      this.truckCaterpillars = scene.add.sprite(
+        truck.caterpillars.x,
+        truck.caterpillars.y,
+        truck.texture,
+        truck.caterpillars.sprite
+      );
+    }
+    if (truck.wheels) {
+      truck.wheels.forEach(wheel => {
+        this.truckWheels.push(scene.add.sprite(wheel.x, wheel.y, truck.texture, wheel.sprite));
+      });
+    }
+
+    // // Create wheels using the atlas frame
+    // this.backWheel = scene.add.sprite(90, 95, 'truck-general', 'truck-wheel');
+    // this.frontWheel = scene.add.sprite(-125, 95, 'truck-general', 'truck-wheel');
+    // this.truckBody = scene.add.sprite(0, 0, 'truck-general', 'truck-body');
+
     // Create wheels using the atlas frame
-    this.backWheel = scene.add.sprite(90, 95, 'truck-general', 'truck-wheel');
-    this.frontWheel = scene.add.sprite(-125, 95, 'truck-general', 'truck-wheel');
-    this.truckBody = scene.add.sprite(0, 0, 'truck-general', 'truck-body');
+    // this.truckCaterpillars = scene.add.sprite(90, 80, 'truck-cat', 'caterpillars');
+    // this.truckBody = scene.add.sprite(0, 0, 'truck-cat', 'body');
 
     // Store original y position of the body for bouncing
-    this.originalBodyY = this.truckBody.y;
+    this.originalBodyY = this.truckBody?.y ?? 0;
 
     // Set explicit depth values
-    this.truckBody.setDepth(0); // Body at back
-    this.backWheel.setDepth(1); // Wheels in front
-    this.frontWheel.setDepth(1); // Wheels in front
+    if (this.truckBody) {
+      this.truckBody.setDepth(0); // Body at back
+      this.add(this.truckBody);
+    }
+    if (this.truckCaterpillars) {
+      this.truckCaterpillars.setDepth(1); // Wheels in front
+      this.add(this.truckCaterpillars);
+    }
+    if (this.truckWheels) {
+      this.truckWheels.forEach(wheel => {
+        wheel.setDepth(1); // Wheels in front
+        this.add(wheel);
+      });
+    }
+
+    // this.backWheel.setDepth(1); // Wheels in front
+    // this.frontWheel.setDepth(1); // Wheels in front
 
     // Add all parts to the container
-    this.add(this.truckBody);
-    this.add(this.backWheel);
-    this.add(this.frontWheel);
+    // this.add(this.truckBody);
+    // this.add(this.truckCaterpillars);
+    // this.add(this.frontWheel);
 
     // Add container to the scene
     scene.add.existing(this);
@@ -89,9 +176,11 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
       this.bodyBounceTween?.stop();
 
       // Reset positions and rotations
-      this.frontWheel.rotation = 0;
-      this.backWheel.rotation = 0;
-      this.truckBody.y = this.originalBodyY;
+      // this.frontWheel.rotation = 0;
+      // this.backWheel.rotation = 0;
+      if (this.truckBody) {
+        this.truckBody.y = this.originalBodyY;
+      }
       return;
     }
 
@@ -100,22 +189,22 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     this.backWheelTween?.stop();
     this.bodyBounceTween?.stop();
 
-    // Create new tweens for continuous rotation
-    this.frontWheelTween = this.scene.add.tween({
-      targets: this.frontWheel,
-      rotation: { from: 0, to: direction * Math.PI * 2 },
-      duration: 1000, // One full rotation per second
-      repeat: -1, // Repeat indefinitely
-      ease: 'Linear',
-    });
+    // // Create new tweens for continuous rotation
+    // this.frontWheelTween = this.scene.add.tween({
+    //   targets: this.frontWheel,
+    //   rotation: { from: 0, to: direction * Math.PI * 2 },
+    //   duration: 1000, // One full rotation per second
+    //   repeat: -1, // Repeat indefinitely
+    //   ease: 'Linear',
+    // });
 
-    this.backWheelTween = this.scene.add.tween({
-      targets: this.backWheel,
-      rotation: { from: 0, to: direction * Math.PI * 2 },
-      duration: 1000, // One full rotation per second
-      repeat: -1, // Repeat indefinitely
-      ease: 'Linear',
-    });
+    // this.backWheelTween = this.scene.add.tween({
+    //   targets: this.backWheel,
+    //   rotation: { from: 0, to: direction * Math.PI * 2 },
+    //   duration: 1000, // One full rotation per second
+    //   repeat: -1, // Repeat indefinitely
+    //   ease: 'Linear',
+    // });
 
     // Add bouncing animation to the truck body
     this.bodyBounceTween = this.scene.add.tween({
@@ -133,11 +222,11 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
 
   // Method to get the truck's width (useful for positioning)
   public getTruckWidth(): number {
-    return this.truckBody.width;
+    return this.truckBody?.width ?? 0;
   }
 
   // Method to get the truck's height
   public getTruckHeight(): number {
-    return this.truckBody.height;
+    return this.truckBody?.height ?? 0;
   }
 }
