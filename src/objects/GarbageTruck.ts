@@ -53,7 +53,6 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
   private bodyBounceTween?: Phaser.Tweens.Tween;
   private originalBodyY: number = 0;
   private targetX: number;
-  private truckType: keyof typeof Trucks;
 
   private awayOffsetX: number = 500;
 
@@ -61,7 +60,6 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     // Store target position
-    this.truckType = truckType;
     this.targetX = x;
     this.setPosition(this.targetX - this.awayOffsetX, y);
 

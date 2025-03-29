@@ -46,7 +46,8 @@ export class GameScene extends Phaser.Scene {
   private goButton!: Phaser.GameObjects.Sprite;
   private garbageCollected: number = 0;
   private dragStartZone: DropZone | null = null;
-  private currentTruckType: string = 'truck-general';
+  private currentTruckType: string = 'truck-cat';
+  private readonly VERSION: string = '1.2';
 
   constructor() {
     super({ key: 'GameScene' });
@@ -305,6 +306,17 @@ export class GameScene extends Phaser.Scene {
     this.scale.on('leavefullscreen', () => {
       fullscreenButton.setFrame(0);
     });
+
+    // Add version text in bottom right corner
+    this.add
+      .text(this.cameras.main.width - 10, this.cameras.main.height - 10, `v${this.VERSION}`, {
+        fontSize: '10px',
+        color: '#666666',
+        fontFamily: 'Arial',
+      })
+      .setOrigin(1, 1) // Align to bottom right
+      .setAlpha(0.5)
+      .setDepth(100);
   }
 
   private createDropZones(): void {
