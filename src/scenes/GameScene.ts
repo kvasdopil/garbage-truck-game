@@ -46,14 +46,15 @@ export class GameScene extends Phaser.Scene {
   private goButton!: Phaser.GameObjects.Sprite;
   private garbageCollected: number = 0;
   private dragStartZone: DropZone | null = null;
-  private currentTruckType: string = 'truck-monster';
+  private currentTruckType: string = 'truck-general';
   private readonly truckTypes: string[] = [
     'truck-general',
-    'truck-cat',
     'truck-white',
+    'truck-cat',
     'truck-monster',
+    'truck-vintage',
   ];
-  private readonly VERSION: string = '1.2.1';
+  private readonly VERSION: string = '1.2.2';
 
   constructor() {
     super({ key: 'GameScene' });
@@ -68,6 +69,7 @@ export class GameScene extends Phaser.Scene {
     this.load.atlas('truck-cat', 'textures/truck-cat.png', 'textures/truck-cat.json');
     this.load.atlas('truck-white', 'textures/truck-white.png', 'textures/truck-white.json');
     this.load.atlas('truck-monster', 'textures/truck-monster.png', 'textures/truck-monster.json');
+    this.load.atlas('truck-vintage', 'textures/truck-vintage.png', 'textures/truck-vintage.json');
 
     // Load assets from public directory
     this.load.image('bin-green', 'textures/bin-green.png'); // Empty bin

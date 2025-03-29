@@ -91,6 +91,26 @@ const Trucks: Record<string, Truck> = {
       },
     ],
   },
+  'truck-vintage': {
+    texture: 'truck-vintage',
+    body: {
+      sprite: 'body',
+      x: 0,
+      y: 0,
+    },
+    wheels: [
+      {
+        sprite: 'wheel',
+        x: -178,
+        y: 95,
+      },
+      {
+        sprite: 'wheel',
+        x: 105,
+        y: 95,
+      },
+    ],
+  },
 };
 
 export class GarbageTruck extends Phaser.GameObjects.Container {
