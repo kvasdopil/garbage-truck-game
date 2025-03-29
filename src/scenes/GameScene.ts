@@ -222,11 +222,12 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Drive the truck in and enable spawning when it arrives
-    this.truck.driveIn().then(() => {
+    (async () => {
+      await this.truck.driveIn();
       this.garbageManager.resumeSpawning();
       this.truckDropZone.setVisible(true);
       this.garbageCollected = 0; // Reset counter when truck arrives
-    });
+    })();
 
     // Add click handler for go button
     this.goButton.on('pointerdown', async () => {

@@ -9,7 +9,6 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
   private bodyBounceTween?: Phaser.Tweens.Tween;
   private originalBodyY: number = 0;
   private targetX: number;
-  private targetY: number;
 
   private awayOffsetX: number = 500;
 
@@ -18,7 +17,6 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
 
     // Store target position
     this.targetX = x;
-    this.targetY = y;
     this.setPosition(this.targetX - this.awayOffsetX, y);
 
     // Create wheels using the atlas frame

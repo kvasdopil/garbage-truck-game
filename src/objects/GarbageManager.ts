@@ -9,7 +9,6 @@ export class GarbageManager {
   private maxGarbagePieces: number = 5;
   private isDragging: boolean = false;
   private isPaused: boolean = true;
-  private spawnInterval: number = 3000; // 3 seconds
 
   // Available garbage types
   private static readonly GARBAGE_TYPES: BinType[] = [
