@@ -1,0 +1,393 @@
+body {
+  /* Assuming dark background is set elsewhere or is default */
+  color: #e0e0e0; /* Light grey default text color */
+  font-family: sans-serif; /* Example font */
+  margin: 0;
+}
+
+#root {
+  /* Resetting Vite default styles */
+  /* Removed max-width: 1280px; */
+  /* Removed margin: 0 auto; */
+  /* Removed padding: 2rem; */
+  /* Removed text-align: center; */
+  width: 100%;
+  height: 100vh; /* Make root take full viewport height */
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+.app {
+  /* Removed padding: 2rem; */
+  width: 100%;
+  height: 100%; /* Make app fill the root container */
+  display: flex; /* Use flex to manage main content */
+  flex-direction: column;
+}
+
+header {
+  margin-bottom: 2rem;
+}
+
+main {
+  display: grid;
+  /* Updated columns: List (fixed) | Preview (flexible) | Editor (fixed) */
+  grid-template-columns: 300px 1fr 300px;
+  gap: 0;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+/* Ensure containers within main also handle height */
+.texture-list-container {
+  /* border-right: 1px solid #ccc; */ /* Optional: remove border */
+  /* padding-right: 2rem; */ /* Optional: remove padding */
+  padding: 0; /* Add some internal padding */
+  overflow-y: auto; /* Allow scrolling if list is long */
+}
+
+.texture-list h2 {
+  margin-top: 0.5rem;
+}
+
+.texture-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.texture-list li {
+  margin-bottom: 0.5rem;
+}
+
+.texture-list li.selected button {
+  background-color: #555; /* Slightly lighter grey background for selected button */
+  border-color: #aaa; /* Lighter border */
+  color: #fff; /* Ensure text is bright */
+}
+
+.texture-list button {
+  width: 100%;
+  padding: 0.5rem;
+  text-align: left;
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.texture-list button:hover {
+  background: #f0f0f0;
+}
+
+/* NEW: Container for the middle (image) column */
+.texture-preview-column {
+  padding: 1rem;
+  overflow: auto; /* Allow scrolling if image is very large */
+  display: flex;
+  justify-content: flex-start; /* Align items to the start (left) */
+  align-items: flex-start; /* Align items to top */
+}
+
+/* NEW: Container for the right (editor form) column */
+.frame-details-column {
+  padding: 1rem;
+  overflow-y: auto; /* Allow scrolling */
+}
+
+/* Remove padding from .texture-editor-container if it's no longer needed */
+.texture-editor-container {
+  /* padding: 1rem; */ /* Might be redundant now */
+  overflow-y: auto;
+  /* This container might be removed or repurposed in App.tsx */
+}
+
+.texture-editor {
+  /* .texture-editor might not need its own padding if columns have it */
+  /* padding: 1rem; */
+  border-radius: 8px;
+  /* It no longer needs to be a grid container itself */
+}
+
+.texture-preview {
+  margin: 1rem 0;
+  padding: 1rem;
+  /* Removed background: #fff; */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.frame-list {
+  margin: 1rem 0;
+}
+
+.frame-list ul {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.5rem;
+  /* Removed background: #fff; */
+  /* background: #444; */ /* Example dark background */
+}
+
+.frame-list li {
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.frame-list li:hover {
+  background: #f0f0f0;
+  color: #333; /* Ensure text is dark on hover */
+}
+
+.frame-list li.selected {
+  /* background: #e0e0e0; */ /* Removed light grey */
+  background-color: #555; /* Use same dark grey as texture list selection */
+  color: #fff; /* Ensure text is light */
+}
+
+.frame-editor {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.frame-fields {
+  display: grid;
+  grid-template-columns: repeat(2, 80px); /* Reduced column width */
+  column-gap: 2rem; /* Horizontal gap between columns */
+  row-gap: 1rem; /* Increased vertical gap between rows */
+  margin-bottom: 0.75rem; /* Add space before checkboxes */
+}
+
+.frame-fields label {
+  display: block;
+  font-size: 0.9rem; /* Slightly smaller font */
+  margin-bottom: 0.1rem; /* Reduced margin */
+}
+
+.frame-fields input[type='number'] {
+  width: 100%;
+  padding: 0.25rem;
+  margin-top: 0.1rem; /* Reduced margin */
+  background-color: #555;
+  color: #e0e0e0;
+  border: 1px solid #888;
+  border-radius: 3px;
+}
+
+/* New styles for checkbox container */
+.frame-checkboxes {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.frame-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.frame-checkboxes input[type='checkbox'] {
+  margin: 0;
+}
+
+.actions {
+  margin-top: 1rem;
+  text-align: right;
+}
+
+.actions button {
+  padding: 0.5rem 1rem;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.actions button:hover {
+  background: #0056b3;
+}
+
+.actions button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.error {
+  padding: 1rem;
+  margin: 1rem 0;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 4px;
+  border: 1px solid #ef9a9a;
+}
+
+.texture-preview-container {
+  overflow: hidden;
+  position: relative;
+  display: inline-block; /* Make container wrap the image size */
+  vertical-align: top; /* Align properly with other elements */
+
+  /* Checkerboard background */
+  background-color: #ccc; /* Fallback color */
+  background-image:
+    linear-gradient(45deg, #aaa 25%, transparent 25%),
+    linear-gradient(-45deg, #aaa 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #aaa 75%),
+    linear-gradient(-45deg, transparent 75%, #aaa 75%);
+  background-size: 20px 20px; /* Size of the squares */
+  background-position:
+    0 0,
+    0 10px,
+    10px -10px,
+    -10px 0px;
+}
+
+.frame-overlay-container {
+  pointer-events: none;
+}
+
+.frame-box {
+  position: absolute;
+  background-color: rgba(0, 123, 255, 0.3);
+  border: 1px solid rgba(0, 123, 255, 0.8);
+  box-sizing: border-box;
+  cursor: pointer;
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.frame-box.selected {
+  background-color: rgba(255, 193, 7, 0.4);
+  border: 2px solid rgba(255, 193, 7, 1);
+}
+
+.frame-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2px 4px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 10px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Styles for ResourceList component using .list-section class */
+.list-section h3 {
+  margin-top: 0.5rem; /* Keep consistent heading margin */
+  margin-bottom: 0.5rem;
+  margin-left: 0.7rem;
+  font-size: 1.1em;
+  /* Add any other styles needed for the section titles */
+}
+
+.list-section ul {
+  list-style: none; /* Remove bullets */
+  padding: 0;
+  margin: 0;
+}
+
+.list-section li {
+  margin-bottom: 0; /* Remove bottom margin if buttons fill space */
+}
+
+/* Style the button within the list item */
+.list-section li button {
+  display: block; /* Make button take full block space */
+  width: 100%; /* Make button take full width */
+  padding: 0.6rem 0.8rem; /* Adjust padding as needed */
+  text-align: left;
+  background: none; /* No background by default */
+  border: none; /* Remove default border */
+  border-bottom: 1px solid #555; /* Add a subtle bottom border separator */
+  border-radius: 0; /* Remove rounded corners */
+  cursor: pointer;
+  color: #e0e0e0; /* Match default text color */
+  font-size: 0.95em;
+}
+
+/* Hover state for the button */
+.list-section li button:hover {
+  background: #484848; /* Slightly lighter background on hover */
+}
+
+/* Selected state for the list item (targets the button inside) */
+.list-section li.selected button {
+  background-color: #333333; /* Dark gray background for selected */
+  border-color: #333333; /* Match background */
+  color: #ffffff; /* Ensure text is bright white */
+  font-weight: bold;
+}
+
+/* Styles for JSON Preview in Middle Column */
+.json-preview-container {
+  width: 100%; /* Explicitly set width */
+  height: 100%; /* Make container fill parent height */
+  display: flex;
+  flex-direction: column; /* Stack heading and pre vertically */
+}
+
+.json-preview-container h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0; /* Prevent heading from shrinking */
+}
+
+.json-preview-container pre {
+  flex-grow: 1; /* Allow pre tag to fill remaining space */
+  background-color: #282c34; /* Dark background */
+  color: #abb2bf; /* Light text color */
+  padding: 1rem;
+  border-radius: 4px;
+  overflow: auto; /* Add scrollbars if content overflows */
+  white-space: pre-wrap; /* Ensure wrapping */
+  word-wrap: break-word;
+  font-family: monospace; /* Use monospace font for code */
+  font-size: 0.9em;
+}

@@ -1,0 +1,13 @@
+{
+  "texture": "truck-cat",
+  "caterpillars": {
+    "sprite": "caterpillars",
+    "x": 90,
+    "y": 80
+  },
+  "body": {
+    "sprite": "body",
+    "x": 0,
+    "y": 0
+  }
+}

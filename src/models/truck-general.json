@@ -1,0 +1,20 @@
+{
+  "texture": "truck-general",
+  "wheels": [
+    {
+      "sprite": "wheel",
+      "x": 90,
+      "y": 95
+    },
+    {
+      "sprite": "wheel",
+      "x": -125,
+      "y": 95
+    }
+  ],
+  "body": {
+    "sprite": "body",
+    "x": 0,
+    "y": 0
+  }
+}

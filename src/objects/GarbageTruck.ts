@@ -1,5 +1,12 @@
 import Phaser from 'phaser';
 
+// Import truck JSON data
+import truckGeneralData from '../models/truck-general.json';
+import truckCatData from '../models/truck-cat.json';
+import truckWhiteData from '../models/truck-white.json';
+import truckMonsterData from '../models/truck-monster.json';
+import truckVintageData from '../models/truck-vintage.json';
+
 type Truck = {
   texture: string;
   wheels?: { sprite: string; x: number; y: number }[];
@@ -7,110 +14,13 @@ type Truck = {
   caterpillars?: { sprite: string; x: number; y: number };
 };
 
-const Trucks: Record<string, Truck> = {
-  'truck-general': {
-    texture: 'truck-general',
-    wheels: [
-      {
-        sprite: 'wheel',
-        x: 90,
-        y: 95,
-      },
-      {
-        sprite: 'wheel',
-        x: -125,
-        y: 95,
-      },
-    ],
-    body: {
-      sprite: 'body',
-      x: 0,
-      y: 0,
-    },
-  },
-  'truck-cat': {
-    texture: 'truck-cat',
-    caterpillars: {
-      sprite: 'caterpillars',
-      x: 90,
-      y: 80,
-    },
-    body: {
-      sprite: 'body',
-      x: 0,
-      y: 0,
-    },
-  },
-  'truck-white': {
-    texture: 'truck-white',
-    body: {
-      sprite: 'body',
-      x: 0,
-      y: 0,
-    },
-    wheels: [
-      {
-        sprite: 'wheel',
-        x: -180,
-        y: 95,
-      },
-      {
-        sprite: 'wheel',
-        x: 10,
-        y: 95,
-      },
-      {
-        sprite: 'wheel',
-        x: 80,
-        y: 95,
-      },
-      {
-        sprite: 'wheel',
-        x: 150,
-        y: 95,
-      },
-    ],
-  },
-  'truck-monster': {
-    texture: 'truck-monster',
-    body: {
-      sprite: 'body',
-      x: 0,
-      y: -30,
-    },
-    wheels: [
-      {
-        sprite: 'wheel',
-        x: -180,
-        y: 95,
-      },
-      {
-        sprite: 'wheel',
-        x: 95,
-        y: 95,
-      },
-    ],
-  },
-  'truck-vintage': {
-    texture: 'truck-vintage',
-    body: {
-      sprite: 'body',
-      x: 0,
-      y: 0,
-    },
-    wheels: [
-      {
-        sprite: 'wheel',
-        x: -178,
-        y: 95,
-      },
-      {
-        sprite: 'wheel',
-        x: 105,
-        y: 95,
-      },
-    ],
-  },
+// Recreate the Trucks object using imported data
+const Trucks = {
+  'truck-general': truckGeneralData as Truck,
+  'truck-cat': truckCatData as Truck,
+  'truck-white': truckWhiteData as Truck,
+  'truck-monster': truckMonsterData as Truck,
+  'truck-vintage': truckVintageData as Truck,
 };
 
 export class GarbageTruck extends Phaser.GameObjects.Container {
@@ -132,7 +42,9 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     this.targetX = x;
     this.setPosition(this.targetX - this.awayOffsetX, y);
 
+    // Use the locally defined Trucks object
     const truck = Trucks[truckType];
+
     if (truck.body) {
       this.truckBody = scene.add.sprite(
         truck.body.x,
