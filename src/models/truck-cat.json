@@ -1,13 +1,15 @@
 {
-  "caterpillars": {
-    "texture": "truck-cat/caterpillars",
-    "x": 90,
-    "y": 80
-  },
-  "body": {
-    "texture": "truck-cat/body",
-    "x": 0,
-    "y": 0
+  "children": {
+    "caterpillars": {
+      "texture": "truck-cat/caterpillars",
+      "x": 90,
+      "y": 80
+    },
+    "body": {
+      "texture": "truck-cat/body",
+      "x": 0,
+      "y": 0
+    }
   },
   "animations": {
     "bounce": {
@@ -16,7 +18,7 @@
         "from": 0,
         "to": -5
       },
-      "duration": 1000,
+      "duration": 500,
       "yoyo": true,
       "repeat": -1,
       "ease": "Sine.easeInOut"

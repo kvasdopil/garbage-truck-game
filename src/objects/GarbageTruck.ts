@@ -7,12 +7,16 @@ import truckWhiteData from '../models/truck-white.json';
 import truckMonsterData from '../models/truck-monster.json';
 import truckVintageData from '../models/truck-vintage.json';
 
+type Animation = Phaser.Types.Tweens.TweenBuilderConfig;
+type Sprite = {
+  texture: string;
+  x: number;
+  y: number;
+};
+
 type Truck = {
-  animations: any;
-  // texture: string; // Removed root texture property
-  wheels?: { texture: string; x: number; y: number }[]; // Changed sprite to texture
-  body: { texture: string; x: number; y: number }; // Changed sprite to texture
-  caterpillars?: { texture: string; x: number; y: number }; // Changed sprite to texture
+  animations?: { [key: string]: Animation };
+  children?: { [key: string]: Sprite };
 };
 
 // Recreate the Trucks object using imported data
@@ -26,19 +30,12 @@ const Trucks = {
 
 export class GarbageTruck extends Phaser.GameObjects.Container {
   private truckBody?: Phaser.GameObjects.Sprite;
-  private truckCaterpillars?: Phaser.GameObjects.Sprite;
-  private truckWheels: Phaser.GameObjects.Sprite[] = [];
   private visualContainer: Phaser.GameObjects.Container;
-  // private backWheel: Phaser.GameObjects.Sprite;
-  private bodyBounceTween?: Phaser.Tweens.Tween;
+  private objects: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private targetX: number;
-  private wheelTweens: Phaser.Tweens.Tween[] = [];
 
   private awayOffsetX: number = 500;
-  private objects: Map<string, Phaser.GameObjects.Sprite> = new Map();
-
-  animations: { [key: string]: Phaser.Types.Tweens.TweenConfigDefaults & { targets: string[] } } =
-    {};
+  private animations: Truck['animations'] = {};
 
   constructor(scene: Phaser.Scene, x: number, y: number, truckType: keyof typeof Trucks) {
     super(scene, x, y);
@@ -54,64 +51,29 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     this.visualContainer = scene.add.container(0, 0);
     this.add(this.visualContainer);
 
-    if (truck.body) {
-      const [textureKey, frameName] = truck.body.texture.split('/');
-      // Create body sprite but don't add to scene yet
-      this.truckBody = scene.make.sprite({
+    // Load named children into the map from the 'children' property
+    for (const [objid, obj] of Object.entries(truck.children || {})) {
+      const [textureKey, frameName] = obj.texture.split('/');
+      const sprite = scene.make.sprite({
         key: textureKey,
         frame: frameName,
-        x: truck.body.x,
-        y: truck.body.y,
-        add: false, // Important: don't add to scene automatically
-      });
-      this.objects.set('body', this.truckBody);
-      this.visualContainer.add(this.truckBody); // Add to visualContainer
-    }
-    if (truck.caterpillars) {
-      const [textureKey, frameName] = truck.caterpillars.texture.split('/');
-      // Create caterpillars sprite
-      this.truckCaterpillars = scene.make.sprite({
-        key: textureKey,
-        frame: frameName,
-        x: truck.caterpillars.x,
-        y: truck.caterpillars.y,
+        x: obj.x,
+        y: obj.y,
         add: false,
       });
-      this.objects.set('caterpillars', this.truckCaterpillars);
-      this.visualContainer.add(this.truckCaterpillars); // Add to visualContainer
-    }
-    if (truck.wheels) {
-      truck.wheels.forEach((wheel, i) => {
-        const [textureKey, frameName] = wheel.texture.split('/');
-        // Create wheel sprite
-        const wheelSprite = scene.make.sprite({
-          key: textureKey,
-          frame: frameName,
-          x: wheel.x,
-          y: wheel.y,
-          add: false,
-        });
-        this.objects.set('wheel' + i, wheelSprite);
-        this.truckWheels.push(wheelSprite);
-        this.visualContainer.add(wheelSprite); // Add to visualContainer
-      });
+      this.objects.set(objid, sprite);
+      this.visualContainer.add(sprite);
     }
 
-    // Set explicit depth values *within* the visualContainer
-    // Note: Depth is relative to other objects in the same container
-    if (this.truckBody) {
-      this.truckBody.setDepth(0); // Body at back within visualContainer
-    }
-    if (this.truckCaterpillars) {
-      this.truckCaterpillars.setDepth(1); // Caterpillars in front within visualContainer
-    }
-    if (this.truckWheels) {
-      this.truckWheels.forEach(wheel => {
-        wheel.setDepth(1); // Wheels in front within visualContainer
-      });
+    // Set depth for named wheels (assuming same depth for all)
+    for (const key of this.objects.keys()) {
+      if (key.startsWith('wheel')) {
+        this.objects.get(key)?.setDepth(1);
+      }
     }
 
-    this.animations = truck.animations;
+    // Store animations
+    this.animations = truck.animations || {};
 
     // Add container to the scene
     scene.add.existing(this);
@@ -121,8 +83,9 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     // Start from off-screen left
     this.x = this.targetX - this.awayOffsetX;
 
-    // Start animations
-    this.animateWheels(1);
+    // Start animations using JSON definitions
+    this.playAnimation('driveIn');
+    this.playAnimation('bounce');
 
     // Create and return a promise that resolves when the movement is complete
     await new Promise(resolve => {
@@ -135,12 +98,15 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
       });
     });
 
-    this.animateWheels(0);
+    // Stop animations
+    this.stopAnimation('driveIn');
+    this.stopAnimation('bounce');
   }
 
   public async driveOut(): Promise<void> {
-    // Start animations
-    this.animateWheels(-1);
+    // Start animations using JSON definitions
+    this.playAnimation('driveOut');
+    this.playAnimation('bounce');
 
     // Create and return a promise that resolves when the movement is complete
     await new Promise(resolve => {
@@ -153,50 +119,9 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
       });
     });
 
-    this.animateWheels(0);
-  }
-
-  // Method to animate wheels and body
-  public animateWheels(direction: number) {
-    if (direction === 0) {
-      // Stop all animations
-      this.wheelTweens.forEach(tween => tween.stop());
-      this.stopAnimation('bounce');
-
-      // Reset positions and rotations
-      if (this.truckWheels) {
-        this.truckWheels.forEach(wheel => {
-          wheel.rotation = 0;
-        });
-      }
-
-      if (this.truckBody) {
-        // Bounce animation now targets the visualContainer
-        this.visualContainer.y = 0; // Reset visual container position
-      }
-      return;
-    }
-
-    // Stop existing tweens if they exist
-    this.wheelTweens.forEach(tween => tween.stop());
+    // Stop animations
+    this.stopAnimation('driveOut');
     this.stopAnimation('bounce');
-
-    // create new tweens for continuous rotation for all wheels
-    if (this.truckWheels) {
-      this.truckWheels.forEach(wheel => {
-        const tween = this.scene.add.tween({
-          targets: wheel,
-          rotation: { from: 0, to: direction * Math.PI * 2 },
-          duration: 1000, // One full rotation per second
-          repeat: -1, // Repeat indefinitely
-          ease: 'Linear',
-        });
-        this.wheelTweens.push(tween);
-      });
-    }
-
-    // Add bouncing animation to the visual container
-    this.playAnimation('bounce');
   }
 
   // Method to get the truck's width (useful for positioning)
@@ -209,27 +134,33 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     return this.truckBody?.height ?? 0;
   }
 
+  // --- Animation Player ---
   private activeAnimations: Map<string, Phaser.Tweens.Tween> = new Map();
 
   public async playAnimation(animationName: string) {
-    if (!this.animations[animationName]) {
+    const animationConfig = this.animations?.[animationName];
+    if (!animationConfig) {
+      console.log('no animation', animationName);
       return;
     }
 
-    // already playing
+    // Prevent restarting if already playing
     if (this.activeAnimations.has(animationName)) {
+      console.log('already playing', animationName);
       return;
     }
 
-    const animationConfig = this.animations[animationName];
-    const config = this.scene.add.tween({
+    // Resolve target names to actual objects
+    const targets = animationConfig.targets
+      .map((name: string) => this.objects.get(name))
+      .filter((a: any) => a); // Filter out undefined targets
+
+    const tween = this.scene.add.tween({
       ...animationConfig,
-      targets: animationConfig.targets.map((name: string) => this.objects.get(name)),
+      targets: targets,
     });
 
-    const tween = this.scene.add.tween(config);
     this.activeAnimations.set(animationName, tween);
-    tween.play();
     return tween;
   }
 
@@ -238,6 +169,8 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     if (tween) {
       tween.stop();
       this.activeAnimations.delete(animationName);
+    } else {
+      console.log('no tween to stop', animationName);
     }
   }
 }

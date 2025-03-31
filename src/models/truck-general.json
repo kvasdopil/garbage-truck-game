@@ -1,20 +1,20 @@
 {
-  "wheels": [
-    {
+  "children": {
+    "body": {
+      "texture": "truck-general/body",
+      "x": 0,
+      "y": 0
+    },
+    "wheel1": {
       "texture": "truck-general/wheel",
       "x": 90,
       "y": 95
     },
-    {
+    "wheel2": {
       "texture": "truck-general/wheel",
       "x": -125,
       "y": 95
     }
-  ],
-  "body": {
-    "texture": "truck-general/body",
-    "x": 0,
-    "y": 0
   },
   "animations": {
     "bounce": {
@@ -23,10 +23,24 @@
         "from": 0,
         "to": -5
       },
-      "duration": 1000,
+      "duration": 500,
       "yoyo": true,
       "repeat": -1,
       "ease": "Sine.easeInOut"
+    },
+    "driveIn": {
+      "targets": ["wheel1", "wheel2"],
+      "rotation": { "from": 0, "to": 12 },
+      "duration": 4000,
+      "repeat": 0,
+      "ease": "Cubic.easeOut"
+    },
+    "driveOut": {
+      "targets": ["wheel1", "wheel2"],
+      "rotation": { "from": 12, "to": 0 },
+      "duration": 2000,
+      "repeat": 0,
+      "ease": "Cubic.easeIn"
     }
   }
 }

@@ -1,31 +1,31 @@
 {
-  "body": {
-    "texture": "truck-white/body",
-    "x": 0,
-    "y": 0
-  },
-  "wheels": [
-    {
+  "children": {
+    "body": {
+      "texture": "truck-white/body",
+      "x": 0,
+      "y": 0
+    },
+    "wheel1": {
       "texture": "truck-white/wheel",
       "x": -180,
       "y": 95
     },
-    {
+    "wheel2": {
       "texture": "truck-white/wheel",
       "x": 10,
       "y": 95
     },
-    {
+    "wheel3": {
       "texture": "truck-white/wheel",
       "x": 80,
       "y": 95
     },
-    {
+    "wheel4": {
       "texture": "truck-white/wheel",
       "x": 150,
       "y": 95
     }
-  ],
+  },
   "animations": {
     "bounce": {
       "targets": ["body"],
@@ -33,10 +33,24 @@
         "from": 0,
         "to": -5
       },
-      "duration": 1000,
+      "duration": 500,
       "yoyo": true,
       "repeat": -1,
       "ease": "Sine.easeInOut"
+    },
+    "driveIn": {
+      "targets": ["wheel1", "wheel2", "wheel3", "wheel4"],
+      "rotation": { "from": 0, "to": 12 },
+      "duration": 4000,
+      "repeat": 0,
+      "ease": "Cubic.easeOut"
+    },
+    "driveOut": {
+      "targets": ["wheel1", "wheel2", "wheel3", "wheel4"],
+      "rotation": { "from": 12, "to": 0 },
+      "duration": 2000,
+      "repeat": 0,
+      "ease": "Cubic.easeIn"
     }
   }
 }
