@@ -1,12 +1,11 @@
 {
-  "texture": "truck-cat",
   "caterpillars": {
-    "sprite": "caterpillars",
+    "texture": "truck-cat/caterpillars",
     "x": 90,
     "y": 80
   },
   "body": {
-    "sprite": "body",
+    "texture": "truck-cat/body",
     "x": 0,
     "y": 0
   }

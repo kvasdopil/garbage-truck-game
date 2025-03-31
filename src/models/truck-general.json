@@ -2,18 +2,18 @@
   "texture": "truck-general",
   "wheels": [
     {
-      "sprite": "wheel",
+      "texture": "truck-general/wheel",
       "x": 90,
       "y": 95
     },
     {
-      "sprite": "wheel",
+      "texture": "truck-general/wheel",
       "x": -125,
       "y": 95
     }
   ],
   "body": {
-    "sprite": "body",
+    "texture": "truck-general/body",
     "x": 0,
     "y": 0
   }

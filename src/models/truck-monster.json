@@ -1,18 +1,17 @@
 {
-  "texture": "truck-monster",
   "body": {
-    "sprite": "body",
+    "texture": "truck-monster/body",
     "x": 0,
     "y": -30
   },
   "wheels": [
     {
-      "sprite": "wheel",
+      "texture": "truck-monster/wheel",
       "x": -180,
       "y": 95
     },
     {
-      "sprite": "wheel",
+      "texture": "truck-monster/wheel",
       "x": 95,
       "y": 95
     }

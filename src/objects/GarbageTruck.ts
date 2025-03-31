@@ -8,10 +8,10 @@ import truckMonsterData from '../models/truck-monster.json';
 import truckVintageData from '../models/truck-vintage.json';
 
 type Truck = {
-  texture: string;
-  wheels?: { sprite: string; x: number; y: number }[];
-  body: { sprite: string; x: number; y: number };
-  caterpillars?: { sprite: string; x: number; y: number };
+  // texture: string; // Removed root texture property
+  wheels?: { texture: string; x: number; y: number }[]; // Changed sprite to texture
+  body: { texture: string; x: number; y: number }; // Changed sprite to texture
+  caterpillars?: { texture: string; x: number; y: number }; // Changed sprite to texture
 };
 
 // Recreate the Trucks object using imported data
@@ -33,6 +33,9 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
   private targetX: number;
   private wheelTweens: Phaser.Tweens.Tween[] = [];
 
+  private driveInTween: Phaser.Types.Tweens.TweenConfigDefaults & { x: number };
+  private driveOutTween: Phaser.Types.Tweens.TweenConfigDefaults & { x: number };
+
   private awayOffsetX: number = 500;
 
   constructor(scene: Phaser.Scene, x: number, y: number, truckType: keyof typeof Trucks) {
@@ -46,24 +49,22 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     const truck = Trucks[truckType];
 
     if (truck.body) {
-      this.truckBody = scene.add.sprite(
-        truck.body.x,
-        truck.body.y,
-        truck.texture,
-        truck.body.sprite
-      );
+      const [textureKey, frameName] = truck.body.texture.split('/');
+      this.truckBody = scene.add.sprite(truck.body.x, truck.body.y, textureKey, frameName);
     }
     if (truck.caterpillars) {
+      const [textureKey, frameName] = truck.caterpillars.texture.split('/');
       this.truckCaterpillars = scene.add.sprite(
         truck.caterpillars.x,
         truck.caterpillars.y,
-        truck.texture,
-        truck.caterpillars.sprite
+        textureKey,
+        frameName
       );
     }
     if (truck.wheels) {
       truck.wheels.forEach(wheel => {
-        this.truckWheels.push(scene.add.sprite(wheel.x, wheel.y, truck.texture, wheel.sprite));
+        const [textureKey, frameName] = wheel.texture.split('/');
+        this.truckWheels.push(scene.add.sprite(wheel.x, wheel.y, textureKey, frameName));
       });
     }
 
@@ -85,6 +86,20 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
         this.add(wheel);
       });
     }
+
+    this.driveInTween = {
+      targets: this,
+      x: this.targetX,
+      duration: 4000, // 2 seconds to drive in
+      ease: 'Cubic.easeOut',
+    };
+    this.driveOutTween = {
+      targets: this,
+      x: this.targetX - this.awayOffsetX,
+      duration: 2000, // 2 seconds to drive out
+      ease: 'Cubic.easeIn',
+    };
+
     // Add container to the scene
     scene.add.existing(this);
   }
@@ -99,10 +114,7 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     // Create and return a promise that resolves when the movement is complete
     await new Promise(resolve => {
       this.scene.add.tween({
-        targets: this,
-        x: this.targetX,
-        duration: 4000, // 2 seconds to drive in
-        ease: 'Cubic.easeOut',
+        ...this.driveInTween,
         onComplete: resolve,
       });
     });
@@ -117,10 +129,7 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     // Create and return a promise that resolves when the movement is complete
     await new Promise(resolve => {
       this.scene.add.tween({
-        targets: this,
-        x: this.targetX - this.awayOffsetX,
-        duration: 2000, // 2 seconds to drive out
-        ease: 'Cubic.easeIn',
+        ...this.driveOutTween,
         onComplete: resolve,
       });
     });

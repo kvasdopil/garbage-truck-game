@@ -182,7 +182,7 @@ export class GameScene extends Phaser.Scene {
       this,
       this.cameras.main.width * 0.25, // Left third of screen
       this.cameras.main.height * 0.6, // Move down to 70% of screen height
-      this.currentTruckType
+      this.currentTruckType as any
     );
     this.truck.setDepth(1); // Set truck to be above drop zones
 
@@ -268,7 +268,7 @@ export class GameScene extends Phaser.Scene {
           this,
           this.cameras.main.width * 0.25, // Always start at the same position
           this.cameras.main.height * 0.6, // Move down to 70% of screen height
-          this.currentTruckType
+          this.currentTruckType as any
         );
         this.truck.setDepth(1);
 

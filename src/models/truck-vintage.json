@@ -1,18 +1,17 @@
 {
-  "texture": "truck-vintage",
   "body": {
-    "sprite": "body",
+    "texture": "truck-vintage/body",
     "x": 0,
     "y": 0
   },
   "wheels": [
     {
-      "sprite": "wheel",
+      "texture": "truck-vintage/wheel",
       "x": -178,
       "y": 95
     },
     {
-      "sprite": "wheel",
+      "texture": "truck-vintage/wheel",
       "x": 105,
       "y": 95
     }
