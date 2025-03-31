@@ -8,5 +8,18 @@
     "texture": "truck-cat/body",
     "x": 0,
     "y": 0
+  },
+  "animations": {
+    "bounce": {
+      "targets": ["body"],
+      "y": {
+        "from": 0,
+        "to": -5
+      },
+      "duration": 1000,
+      "yoyo": true,
+      "repeat": -1,
+      "ease": "Sine.easeInOut"
+    }
   }
 }

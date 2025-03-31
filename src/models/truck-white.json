@@ -25,5 +25,18 @@
       "x": 150,
       "y": 95
     }
-  ]
+  ],
+  "animations": {
+    "bounce": {
+      "targets": ["body"],
+      "y": {
+        "from": 0,
+        "to": -5
+      },
+      "duration": 1000,
+      "yoyo": true,
+      "repeat": -1,
+      "ease": "Sine.easeInOut"
+    }
+  }
 }
