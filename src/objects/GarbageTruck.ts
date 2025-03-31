@@ -27,16 +27,15 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
   private truckBody?: Phaser.GameObjects.Sprite;
   private truckCaterpillars?: Phaser.GameObjects.Sprite;
   private truckWheels: Phaser.GameObjects.Sprite[] = [];
+  private visualContainer: Phaser.GameObjects.Container;
   // private backWheel: Phaser.GameObjects.Sprite;
   private bodyBounceTween?: Phaser.Tweens.Tween;
-  private originalBodyY: number = 0;
   private targetX: number;
   private wheelTweens: Phaser.Tweens.Tween[] = [];
 
-  private driveInTween: Phaser.Types.Tweens.TweenConfigDefaults & { x: number };
-  private driveOutTween: Phaser.Types.Tweens.TweenConfigDefaults & { x: number };
-
   private awayOffsetX: number = 500;
+
+  private bodyBounceTweenConfig: Phaser.Types.Tweens.TweenConfigDefaults & { y: any };
 
   constructor(scene: Phaser.Scene, x: number, y: number, truckType: keyof typeof Trucks) {
     super(scene, x, y);
@@ -48,56 +47,75 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     // Use the locally defined Trucks object
     const truck = Trucks[truckType];
 
+    // Create and add the visual container
+    this.visualContainer = scene.add.container(0, 0);
+    this.add(this.visualContainer);
+
     if (truck.body) {
       const [textureKey, frameName] = truck.body.texture.split('/');
-      this.truckBody = scene.add.sprite(truck.body.x, truck.body.y, textureKey, frameName);
+      // Create body sprite but don't add to scene yet
+      this.truckBody = scene.make.sprite({
+        key: textureKey,
+        frame: frameName,
+        x: truck.body.x,
+        y: truck.body.y,
+        add: false, // Important: don't add to scene automatically
+      });
+      this.visualContainer.add(this.truckBody); // Add to visualContainer
     }
     if (truck.caterpillars) {
       const [textureKey, frameName] = truck.caterpillars.texture.split('/');
-      this.truckCaterpillars = scene.add.sprite(
-        truck.caterpillars.x,
-        truck.caterpillars.y,
-        textureKey,
-        frameName
-      );
+      // Create caterpillars sprite
+      this.truckCaterpillars = scene.make.sprite({
+        key: textureKey,
+        frame: frameName,
+        x: truck.caterpillars.x,
+        y: truck.caterpillars.y,
+        add: false,
+      });
+      this.visualContainer.add(this.truckCaterpillars); // Add to visualContainer
     }
     if (truck.wheels) {
       truck.wheels.forEach(wheel => {
         const [textureKey, frameName] = wheel.texture.split('/');
-        this.truckWheels.push(scene.add.sprite(wheel.x, wheel.y, textureKey, frameName));
+        // Create wheel sprite
+        const wheelSprite = scene.make.sprite({
+          key: textureKey,
+          frame: frameName,
+          x: wheel.x,
+          y: wheel.y,
+          add: false,
+        });
+        this.truckWheels.push(wheelSprite);
+        this.visualContainer.add(wheelSprite); // Add to visualContainer
       });
     }
 
-    // Store original y position of the body for bouncing
-    this.originalBodyY = this.truckBody?.y ?? 0;
-
-    // Set explicit depth values
+    // Set explicit depth values *within* the visualContainer
+    // Note: Depth is relative to other objects in the same container
     if (this.truckBody) {
-      this.truckBody.setDepth(0); // Body at back
-      this.add(this.truckBody);
+      this.truckBody.setDepth(0); // Body at back within visualContainer
     }
     if (this.truckCaterpillars) {
-      this.truckCaterpillars.setDepth(1); // Wheels in front
-      this.add(this.truckCaterpillars);
+      this.truckCaterpillars.setDepth(1); // Caterpillars in front within visualContainer
     }
     if (this.truckWheels) {
       this.truckWheels.forEach(wheel => {
-        wheel.setDepth(1); // Wheels in front
-        this.add(wheel);
+        wheel.setDepth(1); // Wheels in front within visualContainer
       });
     }
 
-    this.driveInTween = {
-      targets: this,
-      x: this.targetX,
-      duration: 4000, // 2 seconds to drive in
-      ease: 'Cubic.easeOut',
-    };
-    this.driveOutTween = {
-      targets: this,
-      x: this.targetX - this.awayOffsetX,
-      duration: 2000, // 2 seconds to drive out
-      ease: 'Cubic.easeIn',
+    this.bodyBounceTweenConfig = {
+      targets: this.truckBody!, // Target the visual container
+      y: {
+        // Animate its y property
+        from: 0, // Start from its base position (0)
+        to: -5, // Move up slightly
+      },
+      duration: 500, // Half a second up and down
+      yoyo: true, // Makes it bounce back
+      repeat: -1, // Repeat indefinitely
+      ease: 'Sine.easeInOut', // Smooth bouncing motion
     };
 
     // Add container to the scene
@@ -114,7 +132,10 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     // Create and return a promise that resolves when the movement is complete
     await new Promise(resolve => {
       this.scene.add.tween({
-        ...this.driveInTween,
+        targets: this,
+        x: this.targetX,
+        duration: 4000, // 2 seconds to drive in
+        ease: 'Cubic.easeOut',
         onComplete: resolve,
       });
     });
@@ -129,7 +150,10 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
     // Create and return a promise that resolves when the movement is complete
     await new Promise(resolve => {
       this.scene.add.tween({
-        ...this.driveOutTween,
+        targets: this,
+        x: this.targetX - this.awayOffsetX,
+        duration: 2000, // 2 seconds to drive out
+        ease: 'Cubic.easeIn',
         onComplete: resolve,
       });
     });
@@ -152,7 +176,8 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
       }
 
       if (this.truckBody) {
-        this.truckBody.y = this.originalBodyY;
+        // Bounce animation now targets the visualContainer
+        this.visualContainer.y = 0; // Reset visual container position
       }
       return;
     }
@@ -175,18 +200,8 @@ export class GarbageTruck extends Phaser.GameObjects.Container {
       });
     }
 
-    // Add bouncing animation to the truck body
-    this.bodyBounceTween = this.scene.add.tween({
-      targets: this.truckBody,
-      y: {
-        from: this.originalBodyY,
-        to: this.originalBodyY - 5,
-      },
-      duration: 500, // Half a second up and down
-      yoyo: true, // Makes it bounce back
-      repeat: -1, // Repeat indefinitely
-      ease: 'Sine.easeInOut', // Smooth bouncing motion
-    });
+    // Add bouncing animation to the visual container
+    this.bodyBounceTween = this.scene.add.tween(this.bodyBounceTweenConfig);
   }
 
   // Method to get the truck's width (useful for positioning)
