@@ -17,7 +17,7 @@ export const App: React.FC = () => {
 
   // Add state for models
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const [selectedModelData, setSelectedModelData] = useState<any>(null); // Use any for raw JSON
 
   const handleTextureSelect = async (textureId: string) => {
