@@ -47,8 +47,8 @@ jobs:
 
       - name: Build
         # website is hosted on separate domain, so we don't need to set BASE_PATH
-        env:
-          BASE_PATH: /garbage-truck-game/
+        # env:
+        #   BASE_PATH: /garbage-truck-game/
         run: npm run build
 
       - name: Upload artifact
