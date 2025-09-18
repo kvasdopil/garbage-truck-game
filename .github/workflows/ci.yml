@@ -28,7 +28,19 @@ jobs:
         run: npm ci
 
       - name: Install ImageMagick
-        run: sudo apt-get update && sudo apt-get install -y imagemagick
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          # Verify ImageMagick installation and check for magick command
+          if command -v magick &> /dev/null; then
+            echo "ImageMagick 7+ found with 'magick' command: $(magick -version | head -n 1)"
+          elif command -v convert &> /dev/null; then
+            echo "ImageMagick found with 'convert' command: $(convert -version | head -n 1)"
+            echo "Note: Using 'convert' command instead of 'magick'"
+          else
+            echo "Error: ImageMagick not found after installation"
+            exit 1
+          fi
 
       - name: Lint
         run: npm run lint
